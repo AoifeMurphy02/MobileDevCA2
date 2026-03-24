@@ -11,9 +11,24 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		237A31A22F731E730045F41C /* CA2ISOApp */ = {
+		237A31BD2F731F4D0045F41C /* CA2ISOApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CA2ISOApp;
+			sourceTree = "<group>";
+		};
+		237A31C32F731FEF0045F41C /* Models */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Models;
+			sourceTree = "<group>";
+		};
+		237A31D42F7320530045F41C /* Views */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Views;
+			sourceTree = "<group>";
+		};
+		237A31D52F7320740045F41C /* Controllers */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Controllers;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +47,7 @@
 		237A31972F731E730045F41C = {
 			isa = PBXGroup;
 			children = (
-				237A31A22F731E730045F41C /* CA2ISOApp */,
+				237A31C22F731F510045F41C /* AppCore */,
 				237A31A12F731E730045F41C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +58,17 @@
 				237A31A02F731E730045F41C /* CA2ISOApp.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		237A31C22F731F510045F41C /* AppCore */ = {
+			isa = PBXGroup;
+			children = (
+				237A31D52F7320740045F41C /* Controllers */,
+				237A31D42F7320530045F41C /* Views */,
+				237A31C32F731FEF0045F41C /* Models */,
+				237A31BD2F731F4D0045F41C /* CA2ISOApp */,
+			);
+			path = AppCore;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -61,7 +87,10 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				237A31A22F731E730045F41C /* CA2ISOApp */,
+				237A31BD2F731F4D0045F41C /* CA2ISOApp */,
+				237A31C32F731FEF0045F41C /* Models */,
+				237A31D42F7320530045F41C /* Views */,
+				237A31D52F7320740045F41C /* Controllers */,
 			);
 			name = CA2ISOApp;
 			packageProductDependencies = (
