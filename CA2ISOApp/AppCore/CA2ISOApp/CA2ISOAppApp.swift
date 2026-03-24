@@ -25,7 +25,8 @@ struct CA2ISOAppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            //ContentView()
+            StartView()
         }
         .modelContainer(sharedModelContainer)
     }
