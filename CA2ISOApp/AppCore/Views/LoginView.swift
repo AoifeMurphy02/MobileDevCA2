@@ -7,10 +7,14 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 
 struct LoginView: View {
     @State private var viewModel = AppViewModel()
     @State private var rememberMe = false
+    
+    @Query var allUsers: [User]
+
     
     var body: some View {
         ZStack {
@@ -41,6 +45,9 @@ struct LoginView: View {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
                         TextField("Email", text: $viewModel.email)
+                            .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled(true)
+                                    .keyboardType(.emailAddress)
                     }
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
@@ -70,10 +77,18 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 30)
                     
-                    // The Sign In Button
-                    Button(action: {
+                    if !viewModel.loginError.isEmpty {
+                        Text(viewModel.loginError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.horizontal)
+                    }
                     
-                        print("Login")
+                    
+                    Button(action: {
+                     
+                        viewModel.loginUser(users: allUsers)
+                        
                     }) {
                         HStack {
                             Spacer()
@@ -120,46 +135,49 @@ struct LoginView: View {
         }
         // Hides the automatic back button to keep the design clean
         .navigationBarBackButtonHidden(true)
-    }
-}
-
-
-
-struct LoginCheckboxStyle: ToggleStyle {
-    func makeBody(configuration: Self.Configuration) -> some View {
-        return HStack {
-            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .foregroundColor(configuration.isOn ? Color(red: 0.11, green: 0.49, blue: 0.95) : .gray)
-                .onTapGesture { configuration.isOn.toggle() }
-            configuration.label
+        .navigationDestination(isPresented: $viewModel.isLoggedIn) {
+            HomeView()
         }
     }
-}
-
-struct LoginSocialButton: View {
-    var imageName: String
     
-    var body: some View {
-        Circle()
-            .fill(Color.white)
-            .frame(width: 45, height: 45)
-            .shadow(color: .black.opacity(0.1), radius: 5)
-            .overlay(
-                Group {
-                    if imageName == "apple" {
-                        // Apple official system icon
-                        Image(systemName: "applelogo")
-                            .font(.title3)
-                            .foregroundColor(.black)
-                    } else {
-                       
-                        Image(imageName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 25, height: 25)
+    
+    
+    struct LoginCheckboxStyle: ToggleStyle {
+        func makeBody(configuration: Self.Configuration) -> some View {
+            return HStack {
+                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                    .foregroundColor(configuration.isOn ? Color(red: 0.11, green: 0.49, blue: 0.95) : .gray)
+                    .onTapGesture { configuration.isOn.toggle() }
+                configuration.label
+            }
+        }
+    }
+    
+    struct LoginSocialButton: View {
+        var imageName: String
+        
+        var body: some View {
+            Circle()
+                .fill(Color.white)
+                .frame(width: 45, height: 45)
+                .shadow(color: .black.opacity(0.1), radius: 5)
+                .overlay(
+                    Group {
+                        if imageName == "apple" {
+                            // Apple official system icon
+                            Image(systemName: "applelogo")
+                                .font(.title3)
+                                .foregroundColor(.black)
+                        } else {
+                            
+                            Image(imageName)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 25, height: 25)
+                        }
                     }
-                }
-            )
+                )
+        }
     }
 }
 

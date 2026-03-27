@@ -1,15 +1,10 @@
-//
-//  SignupView.swift
-//  CA2ISOApp
-//
-//  Created by Aoife on 24/03/2026.
-//
-
 import Foundation
 import SwiftUI
+import SwiftData
 
 struct SignupView: View {
     @State private var viewModel = AppViewModel()
+    @Environment(\.modelContext) private var modelContext
     
     var body: some View {
         ZStack {
@@ -40,6 +35,7 @@ struct SignupView: View {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
                         TextField("Email", text: $viewModel.email)
+                            .textInputAutocapitalization(.never)
                     }
                     .padding()
                     .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
@@ -63,12 +59,12 @@ struct SignupView: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
-                    .toggleStyle(CheckboxStyle()) 
+                    .toggleStyle(CheckboxStyle())
                     .padding(.horizontal, 30)
                     
                     // The sign up Button
                     Button(action: {
-                       print("sign up ")
+                        viewModel.signUpUser(modelContext: modelContext)
                     }) {
                         HStack {
                             Spacer()
@@ -113,12 +109,14 @@ struct SignupView: View {
             }
             .ignoresSafeArea(edges: .bottom)
         }
-        // This hides the back button text to keep it clean
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        // This is what triggers the move to Home
+        .navigationDestination(isPresented: $viewModel.isSignedUp) {
+            HomeView()
+        }
     }
 }
-
-
 
 struct CheckboxStyle: ToggleStyle {
     func makeBody(configuration: Self.Configuration) -> some View {
@@ -132,33 +130,32 @@ struct CheckboxStyle: ToggleStyle {
 }
 
 struct SocialButton: View {
-        var imageName: String
-        
-        var body: some View {
-            Circle()
-                .fill(Color.white)
-                .frame(width: 45, height: 45)
-                .shadow(color: .black.opacity(0.1), radius: 5)
-                .overlay(
-                    Group {
-                        if imageName == "apple" {
-                            // Apple official system icon
-                            Image(systemName: "applelogo")
-                                .font(.title3)
-                                .foregroundColor(.black)
-                        } else {
-                           
-                            Image(imageName)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 25, height: 25)
-                        }
-                    }
-                )
-        }
+    var imageName: String
     
+    var body: some View {
+        Circle()
+            .fill(Color.white)
+            .frame(width: 45, height: 45)
+            .shadow(color: .black.opacity(0.1), radius: 5)
+            .overlay(
+                Group {
+                    if imageName == "apple" {
+                        Image(systemName: "applelogo")
+                            .font(.title3)
+                            .foregroundColor(.black)
+                    } else {
+                        Image(imageName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 25, height: 25)
+                    }
+                }
+            )
+    }
 }
 
 #Preview {
-    SignupView()
+    NavigationStack {
+        SignupView()
+    }
 }
