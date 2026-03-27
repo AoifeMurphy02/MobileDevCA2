@@ -6,3 +6,17 @@
 //
 
 import Foundation
+import SwiftData
+
+@Model
+class User {
+    var email: String
+    var password: String
+    var signUpDate: Date
+    
+    init(email: String, password: String) {
+        self.email = email
+        self.password = password
+        self.signUpDate = Date.now
+    }
+}
