@@ -10,8 +10,10 @@ import SwiftUI
 
 struct SubjectPickerView: View {
     // State to track multiple selections
-    @State private var selectedSubjects: Set<String> = []
     @Environment(AppViewModel.self) private var viewModel
+        
+    @State private var selectedSubjects: Set<String> = []
+   
     
     @State private var navigateToHome = false
     
@@ -141,7 +143,7 @@ struct SubjectRow: View {
                 .fontWeight(.medium)
             
             Spacer()
-            // No icon here anymore, just the spacer to keep layout balanced
+            
         }
         .padding()
         .background(RoundedRectangle(cornerRadius: 15).fill(Color.gray.opacity(0.1)))
