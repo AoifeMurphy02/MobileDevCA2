@@ -6,3 +6,111 @@
 //
 
 import Foundation
+import SwiftUI
+
+struct SubjectPickerView: View {
+    // State to track multiple selections
+    @State private var selectedSubjects: Set<String> = []
+    
+    let subjects = [
+        "English", "French", "German", "Spanish", "Mathematics",
+        "Physics", "Biology", "Chemistry", "Computer Science",
+        "Geography", "History", "Music", "Art"
+    ]
+
+    var body: some View {
+        ZStack {
+            // Background Blue
+            Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Top Blue Area (Status bar space)
+                Spacer().frame(height: 60)
+                
+                // White Card
+                VStack(spacing: 0) {
+                    Text("Pick Your Subjects")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                        .padding(.top, 40)
+                        .padding(.bottom, 20)
+                    
+                    ScrollView {
+                        VStack(spacing: 15) {
+                            ForEach(subjects, id: \.self) { subject in
+                                SubjectRow(
+                                    title: subject,
+                                    isSelected: selectedSubjects.contains(subject)
+                                )
+                                .onTapGesture {
+                                    // Toggle selection logic
+                                    if selectedSubjects.contains(subject) {
+                                        selectedSubjects.remove(subject)
+                                    } else {
+                                        selectedSubjects.insert(subject)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 30)
+                    }
+                    
+                    // Sticky Bottom Button Area
+                    VStack {
+                        Button(action: {
+                            print("Adding subjects: \(selectedSubjects)")
+                        }) {
+                            Text(selectedSubjects.isEmpty ? "Select Subjects" : "Add \(selectedSubjects.count) Subjects")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .background(selectedSubjects.isEmpty ? Color.gray : Color(red: 0.11, green: 0.49, blue: 0.95))
+                                .clipShape(Capsule())
+                        }
+                        .disabled(selectedSubjects.isEmpty)
+                        .padding(.horizontal, 40)
+                        .padding(.top, 20)
+                        .padding(.bottom, 40)
+                    }
+                    .background(Color.white)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.white)
+                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
+            }
+            .ignoresSafeArea(edges: .bottom)
+        }
+        .navigationBarBackButtonHidden(true)
+    }
+}
+
+struct SubjectRow: View {
+    var title: String
+    var isSelected: Bool
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .fontWeight(.medium)
+            
+            Spacer()
+            // No icon here anymore, just the spacer to keep layout balanced
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 15).fill(Color.gray.opacity(0.1)))
+        // THE BORDER: This appears only when isSelected is true
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
+        )
+        // Animation makes the border fade in smoothly
+        .animation(.easeInOut(duration: 0.2), value: isSelected)
+    }
+}
+
+#Preview {
+    NavigationStack {
+        SubjectPickerView()
+    }
+}

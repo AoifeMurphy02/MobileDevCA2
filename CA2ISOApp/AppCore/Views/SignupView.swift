@@ -113,7 +113,7 @@ struct SignupView: View {
         .toolbar(.hidden, for: .navigationBar)
         // This is what triggers the move to Home
         .navigationDestination(isPresented: $viewModel.isSignedUp) {
-            HomeView()
+            SubjectPickerView()
         }
     }
 }
