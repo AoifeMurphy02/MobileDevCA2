@@ -11,6 +11,9 @@ import SwiftUI
 struct SubjectPickerView: View {
     // State to track multiple selections
     @State private var selectedSubjects: Set<String> = []
+    @Environment(AppViewModel.self) private var viewModel
+    
+    @State private var navigateToHome = false
     
     @State private var subjects = [
         "English", "French", "German", "Spanish", "Mathematics",
@@ -80,7 +83,9 @@ struct SubjectPickerView: View {
                     // Sticky Bottom Button Area
                     VStack {
                         Button(action: {
-                            print("Adding subjects: \(selectedSubjects)")
+                            viewModel.chosenSubjects = Array(selectedSubjects)
+                               // Trigger navigation to Home (you'll need a boolean for this)
+                               navigateToHome = true
                         }) {
                             Text(selectedSubjects.isEmpty ? "Select Subjects" : "Add \(selectedSubjects.count) Subjects")
                                 .font(.headline)
@@ -97,6 +102,7 @@ struct SubjectPickerView: View {
                     }
                     .background(Color.white)
                 }
+                
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.white)
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
@@ -104,6 +110,11 @@ struct SubjectPickerView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .navigationBarBackButtonHidden(true)
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(isPresented: $navigateToHome) {
+                    HomeView()
+                }
+       
     }
 
 func addNewSubject() {
@@ -144,8 +155,10 @@ struct SubjectRow: View {
     }
 }
 
+
 #Preview {
     NavigationStack {
         SubjectPickerView()
+            .environment(AppViewModel())
     }
 }

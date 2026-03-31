@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct CA2ISOAppApp: App {
+    @State private var viewModel = AppViewModel()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
@@ -29,6 +31,7 @@ struct CA2ISOAppApp: App {
             //ContentView()
             StartView()
         }
+        .environment(viewModel)
         .modelContainer(sharedModelContainer)
     }
 }
