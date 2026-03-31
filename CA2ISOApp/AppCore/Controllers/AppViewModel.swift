@@ -17,6 +17,10 @@ class AppViewModel {
     
     var isLoggedIn = false // New state to trigger navigation to Home
     var loginError = ""    // For error handling
+    
+    var chosenSubjects: [String] = []
+    //hardcoded for now 
+    var streakCount: Int = 2
 
     
     // was sign up successful if so we move screens
@@ -56,7 +60,6 @@ class AppViewModel {
     
     // searches SwiftData for a matching user
     func loginUser(users: [User]) {
-        print("--- LOGIN TEST START ---")
         print("Users found in database: \(users.count)")
         
         let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
