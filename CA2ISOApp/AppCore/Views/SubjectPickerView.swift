@@ -12,11 +12,14 @@ struct SubjectPickerView: View {
     // State to track multiple selections
     @State private var selectedSubjects: Set<String> = []
     
-    let subjects = [
+    @State private var subjects = [
         "English", "French", "German", "Spanish", "Mathematics",
         "Physics", "Biology", "Chemistry", "Computer Science",
         "Geography", "History", "Music", "Art"
     ]
+    
+    @State private var newSubjectName: String = ""
+
 
     var body: some View {
         ZStack {
@@ -34,6 +37,25 @@ struct SubjectPickerView: View {
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                         .padding(.top, 40)
                         .padding(.bottom, 20)
+                    
+            
+                        HStack(spacing: 15) {
+                                            TextField("Type new subject...", text: $newSubjectName)
+                                                .padding()
+                                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.1)))
+                                                .textInputAutocapitalization(.words) // Automatically capitals first letter
+                                            
+                                            Button(action: addNewSubject) {
+                                                Image(systemName: "plus.circle.fill")
+                                                    .font(.system(size: 40))
+                                                    .foregroundColor(newSubjectName.isEmpty ? .gray : .blue)
+                                            }
+                                            .disabled(newSubjectName.isEmpty) // Disable button if empty
+                                        }
+                                        .padding(.horizontal, 30)
+                                        .padding(.top, 20)
+                                        .padding(.bottom, 10)
+                                        
                     
                     ScrollView {
                         VStack(spacing: 15) {
@@ -83,6 +105,19 @@ struct SubjectPickerView: View {
         }
         .navigationBarBackButtonHidden(true)
     }
+
+func addNewSubject() {
+       let trimmedName = newSubjectName.trimmingCharacters(in: .whitespaces)
+       
+       // Validation: Don't add if empty or if it already exists
+       if !trimmedName.isEmpty && !subjects.contains(trimmedName) {
+           withAnimation(.spring()) {
+               subjects.insert(trimmedName, at: 0) // Adds to the top of the list
+               selectedSubjects.insert(trimmedName) // Automatically select it
+               newSubjectName = "" // Clear the text field
+           }
+       }
+   }
 }
 
 struct SubjectRow: View {
