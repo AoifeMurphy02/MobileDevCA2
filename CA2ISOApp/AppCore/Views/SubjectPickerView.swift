@@ -89,7 +89,7 @@ struct SubjectPickerView: View {
                                // Trigger navigation to Home (you'll need a boolean for this)
                                navigateToHome = true
                         }) {
-                            Text(selectedSubjects.isEmpty ? "Select Subjects" : "Add \(selectedSubjects.count) Subjects")
+                            Text(selectedSubjects.isEmpty ? "Select Subjects" : "Add Subjects")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -110,12 +110,22 @@ struct SubjectPickerView: View {
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
             .ignoresSafeArea(edges: .bottom)
-        }
-        .navigationBarBackButtonHidden(true)
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationDestination(isPresented: $navigateToHome) {
-                    HomeView()
+        }.navigationBarBackButtonHidden(true)
+            .toolbar(.hidden, for: .navigationBar)
+            
+            // Load existing subjects when the screen opens
+            .onAppear {
+                // We take the subjects already in the ViewModel
+                // and put them into the local 'selectedSubjects' Set
+                for subject in viewModel.chosenSubjects {
+                    selectedSubjects.insert(subject)
                 }
+            }
+            
+            .navigationDestination(isPresented: $navigateToHome) {
+                HomeView()
+            }
+        
        
     }
 
@@ -147,7 +157,7 @@ struct SubjectRow: View {
         }
         .padding()
         .background(RoundedRectangle(cornerRadius: 15).fill(Color.gray.opacity(0.1)))
-        // THE BORDER: This appears only when isSelected is true
+        
         .overlay(
             RoundedRectangle(cornerRadius: 15)
                 .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
