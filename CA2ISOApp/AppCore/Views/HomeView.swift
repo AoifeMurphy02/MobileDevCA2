@@ -17,7 +17,7 @@ struct HomeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 1. HEADER (Profile, Welcome, Streak)
+            // HEADER (Profile, Welcome, Streak)
             HStack {
                 Circle()
                     .fill(.gray.opacity(0.3))
@@ -39,13 +39,26 @@ struct HomeView: View {
             }
             .padding(.horizontal)
             .padding(.top, 20)
-
-            // 2. SUBJECTS SECTION
-            Text("Subjects")
-                .font(.headline)
-                .foregroundColor(.blue)
-                .padding(.horizontal)
-                .padding(.top, 30)
+           
+            HStack {
+                Text("Subjects")
+                    .font(.headline)
+                    .foregroundColor(.blue)
+                    .padding(.horizontal)
+                
+                Spacer()
+                
+                // NAVIGATION LINK TO PICKER
+                NavigationLink(destination: SubjectPickerView()) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "plus.circle.fill")
+                        
+                    }
+                    .foregroundColor(.blue)
+                    .padding(.horizontal) // Added this to fix the edge issue
+                            .padding(.top, 30)
+                }
+            }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 15) {
