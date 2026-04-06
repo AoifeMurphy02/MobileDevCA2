@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 
 struct SubjectPickerView: View {
     // State to track multiple selections
@@ -16,6 +17,9 @@ struct SubjectPickerView: View {
    
     
     @State private var navigateToHome = false
+    @Environment(\.modelContext) private var modelContext
+    @Query var allUsers: [User]
+
     
     @State private var subjects = [
         "English", "French", "German", "Spanish", "Mathematics",
@@ -54,6 +58,8 @@ struct SubjectPickerView: View {
                                                 Image(systemName: "plus.circle.fill")
                                                     .font(.system(size: 40))
                                                     .foregroundColor(newSubjectName.isEmpty ? .gray : .blue)
+                                                
+                                                
                                             }
                                             .disabled(newSubjectName.isEmpty) // Disable button if empty
                                         }
@@ -83,11 +89,14 @@ struct SubjectPickerView: View {
                     }
                     
                     // Sticky Bottom Button Area
+                
                     VStack {
                         Button(action: {
+                           
                             viewModel.chosenSubjects = Array(selectedSubjects)
-                               // Trigger navigation to Home (you'll need a boolean for this)
-                               navigateToHome = true
+                            viewModel.persistSubjectsToDatabase(modelContext: modelContext, users: allUsers)
+                            
+                            navigateToHome = true
                         }) {
                             Text(selectedSubjects.isEmpty ? "Select Subjects" : "Add Subjects")
                                 .font(.headline)

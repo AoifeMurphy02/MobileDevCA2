@@ -13,10 +13,13 @@ class User {
     var email: String
     var password: String
     var signUpDate: Date
+    var savedSubjects: [String] = []
     
-    init(email: String, password: String) {
+    init(email: String, password: String, savedSubjects: [String] = []) {
         self.email = email
         self.password = password
         self.signUpDate = Date.now
+      
+        self.savedSubjects = savedSubjects
     }
 }
