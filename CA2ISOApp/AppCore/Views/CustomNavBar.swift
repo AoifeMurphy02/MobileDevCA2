@@ -21,10 +21,13 @@ struct CustomNavBar: View {
             HStack {
                 Spacer()
                 
-                // --- HOME BUTTON ---
-                NavigationLink(destination: HomeView()) {
+                // Change the Home NavigationLink to this:
+                Button(action: {
+                    viewModel.activeNavigation = nil // Just clear the path
+                }) {
                     NavBarIcon(iconName: "house", isSelected: selectedTab == 0)
                 }
+                
                 
                 Spacer()
                 

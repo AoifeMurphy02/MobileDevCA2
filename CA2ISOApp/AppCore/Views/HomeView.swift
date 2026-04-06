@@ -62,6 +62,17 @@ struct HomeView: View {
 
             CustomNavBar(selectedTab: 0)
         }
+       
+        .navigationDestination(item: $viewModel.activeNavigation) { target in
+            switch target {
+            case .flashcards:
+                CreateFlashCardView()
+            case .studyGuide:
+                CreateStudyGuideView()
+            case .practiceTests:
+                CreatePracticeTestView()
+            }
+        }
         .navigationBarBackButtonHidden(true)
         // THE MODAL POP-UP LOGIC
         .sheet(isPresented: $viewModel.showCreateSheet) {
