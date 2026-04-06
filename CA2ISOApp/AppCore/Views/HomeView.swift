@@ -18,86 +18,69 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(AppViewModel.self) private var viewModel
-    
-    // Colors for the subject cards
     let cardColors: [Color] = [.orange, .red, .purple, .pink, .green, .blue]
 
     var body: some View {
-        // 1. ZStack with bottom alignment is the "Best Practice" for custom nav bars
+        @Bindable var viewModel = viewModel
         ZStack(alignment: .bottom) {
-            
-            // 2. MAIN CONTENT AREA
             VStack(alignment: .leading, spacing: 0) {
-                // HEADER (Profile, Welcome, Streak)
+                // HEADER
                 HStack {
-                    Circle()
-                        .fill(.gray.opacity(0.3))
-                        .frame(width: 50, height: 50)
+                    Circle().fill(.gray.opacity(0.3)).frame(width: 50, height: 50)
                         .overlay(Image(systemName: "person.fill").foregroundColor(.white))
-                    
-                    Text("Welcome Back!")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.blue)
-                    
+                    Text("Welcome Back!").font(.title3).fontWeight(.bold).foregroundColor(.blue)
                     Spacer()
-                    
                     HStack(spacing: 5) {
                         Text("🔥 \(viewModel.streakCount)")
-                        Image(systemName: "heart")
-                            .foregroundColor(.blue)
+                        Image(systemName: "heart").foregroundColor(.blue)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top, 20)
+                .padding(.horizontal).padding(.top, 20)
                
                 // SUBJECTS HEADER
                 HStack {
-                    Text("Subjects")
-                        .font(.headline)
-                        .foregroundColor(.blue)
-                    
+                    Text("Subjects").font(.headline).foregroundColor(.blue)
                     Spacer()
-                    
-                    // Link to the Picker screen
                     NavigationLink(destination: SubjectPickerView()) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(.blue)
+                        Image(systemName: "plus.circle.fill").font(.title3).foregroundColor(.blue)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top, 30)
+                .padding(.horizontal).padding(.top, 30)
 
-                // SUBJECT CARDS SCROLL
+                // SUBJECT CARDS
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 15) {
                         ForEach(Array(viewModel.chosenSubjects.enumerated()), id: \.offset) { index, subject in
-                            SubjectCard(
-                                title: subject,
-                                color: cardColors[index % cardColors.count]
-                            )
-                        }
-                        
-                        if viewModel.chosenSubjects.isEmpty {
-                            Text("No subjects added yet.")
-                                .foregroundColor(.gray)
-                                .padding(.vertical, 40)
+                            SubjectCard(title: subject, color: cardColors[index % cardColors.count])
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 15)
+                    .padding(.horizontal).padding(.top, 15)
                 }
-
-                Spacer() // Pushes everything above to the top
+                Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-            
             CustomNavBar(selectedTab: 0)
         }
+       
+        .navigationDestination(item: $viewModel.activeNavigation) { target in
+            switch target {
+            case .flashcards:
+                CreateFlashCardView()
+            case .studyGuide:
+                CreateStudyGuideView()
+            case .practiceTests:
+                CreatePracticeTestView()
+            }
+        }
         .navigationBarBackButtonHidden(true)
-    }
+        // THE MODAL POP-UP LOGIC
+        .sheet(isPresented: $viewModel.showCreateSheet) {
+            CreateResourceView()
+                .presentationDetents([.medium]) // Half-height pop-up
+                .presentationDragIndicator(.visible) // The "grabber" handle
+        }
+    } 
 }
 
 struct SubjectCard: View {

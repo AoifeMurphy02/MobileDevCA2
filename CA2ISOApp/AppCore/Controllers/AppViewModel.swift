@@ -8,6 +8,13 @@ import Foundation
 import Observation
 import SwiftData
 
+// Define the possible screens for navigation
+enum NavTarget: Hashable {
+    case flashcards
+    case studyGuide
+    case practiceTests
+}
+
 @Observable
 class AppViewModel {
     
@@ -25,6 +32,12 @@ class AppViewModel {
     
     // was sign up successful if so we move screens
     var isSignedUp = false
+    
+    // Logic to control the pop-up sheet
+       var showCreateSheet = false
+    
+    
+       var activeNavigation: NavTarget? = nil
 
     //  save the user
     func signUpUser(modelContext: ModelContext) {
@@ -33,14 +46,14 @@ class AppViewModel {
             return
         }
         
-        // Clean the email before saving (Best Practice)
+        // Clean the email before saving
         let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         let newUser = User(email: cleanEmail, password: password)
         
-        // 1. Insert into memory
+        // Insert into memory
         modelContext.insert(newUser)
         
-        // 2. FORCE save to the phone's disk
+        // FORCE save to the phone's disk
         do {
             try modelContext.save()
             print("SUCCESS: User \(cleanEmail) saved to SwiftData!")

@@ -14,72 +14,56 @@ struct CreateResourceView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
-           
             Color.gray.opacity(0.1).ignoresSafeArea()
             
-            // Pop up Container
             VStack(spacing: 0) {
-                // Top "Grabber" Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
                     .frame(width: 60, height: 6)
                     .padding(.top, 15)
                 
                 VStack(spacing: 25) {
-                    // Button list
-                    ResourceActionButton(
-                        title: "Create Flashcards Set",
-                        icon: "doc.on.doc.fill",
-                        iconColor: .cyan
-                    )
+                    //Buttons with navigation logic
+                    ResourceActionButton(title: "Create Flashcards Set", icon: "doc.on.doc.fill", iconColor: .cyan) {
+                        viewModel.activeNavigation = .flashcards
+                        viewModel.showCreateSheet = false
+                    }
                     
-                    ResourceActionButton(
-                        title: "Create Study Guide",
-                        icon: "book.pages.fill",
-                        iconColor: .purple
-                    )
+                    ResourceActionButton(title: "Create Study Guide", icon: "book.pages.fill", iconColor: .purple) {
+                        viewModel.activeNavigation = .studyGuide
+                        viewModel.showCreateSheet = false
+                    }
                     
-                    ResourceActionButton(
-                        title: "Create Practice Tests",
-                        icon: "checklist",
-                        iconColor: .green
-                    )
+                    ResourceActionButton(title: "Create Practice Tests", icon: "checklist", iconColor: .green) {
+                        viewModel.activeNavigation = .practiceTests
+                        viewModel.showCreateSheet = false
+                    }
                 }
                 .padding(.top, 40)
                 .padding(.horizontal, 30)
                 
                 Spacer()
-                
-                // Nav Bar at the  bottom
                 CustomNavBar(selectedTab: 1)
             }
-            .frame(maxWidth: .infinity, maxHeight: UIScreen.main.bounds.height * 0.55) // Height is 55% of screen
+            .frame(maxWidth: .infinity, maxHeight: UIScreen.main.bounds.height * 0.55)
             .background(Color.white)
-            
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
-            .overlay(
-               
-                UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40)
-                    .stroke(Color.blue.opacity(0.1), lineWidth: 1)
-            )
         }
         .navigationBarBackButtonHidden(true)
         .ignoresSafeArea(edges: .bottom)
     }
 }
 
-// Reusable Button Component
+// 3. Update the button component to accept an action
 struct ResourceActionButton: View {
     var title: String
     var icon: String
     var iconColor: Color
+    var action: () -> Void // New parameter for the click action
     
     var body: some View {
-        Button(action: {
-            print("\(title) tapped")
-        }) {
+        Button(action: action) { // Triggers the navigation logic
             HStack(spacing: 20) {
-                // icon container
                 Image(systemName: icon)
                     .font(.system(size: 30))
                     .foregroundColor(iconColor)
@@ -90,16 +74,10 @@ struct ResourceActionButton: View {
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.black)
-                
                 Spacer()
             }
             .padding(10)
-            .frame(maxWidth: .infinity)
-          
-            .background(
-                RoundedRectangle(cornerRadius: 15)
-                    .stroke(Color.blue.opacity(0.2), lineWidth: 2)
-            )
+            .background(RoundedRectangle(cornerRadius: 15).stroke(Color.blue.opacity(0.2), lineWidth: 2))
             .background(Color.white)
             .cornerRadius(15)
         }

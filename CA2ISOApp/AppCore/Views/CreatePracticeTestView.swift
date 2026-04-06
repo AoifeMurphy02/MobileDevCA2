@@ -1,5 +1,5 @@
 //
-//  Untitled.swift
+//  CreatePracticeTestView.swift
 //  CA2ISOApp
 //
 //  Created by Aoife on 06/04/2026.
@@ -10,7 +10,7 @@ import SwiftUI
 
 import SwiftUI
 
-struct CreateFlashCardView: View {
+struct CreatePracticeTestView: View {
     @Environment(AppViewModel.self) private var viewModel
     
     var body: some View {
@@ -29,7 +29,7 @@ struct CreateFlashCardView: View {
                         )
                         .clipShape(Circle())
                     
-                    Text("Create Flashcards")
+                    Text("Create Practice Test")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                     
@@ -40,10 +40,9 @@ struct CreateFlashCardView: View {
                
               
                 VStack(spacing: 20) {
-                    FlashcardActionButton(icon: "camera", title: "Scan document")
-                    FlashcardActionButton(icon: "paperclip", title: "Select file")
-                    FlashcardActionButton(icon: "textformat", title: "Create manually")
-                    FlashcardActionButton(icon: "photo", title: "Select Image")
+                    TestActionButton(icon: "doc.on.doc", title: "Paste Text")
+                    TestActionButton(icon: "paperclip", title: "Select file")
+                    TestActionButton(icon: "square.stack.3d.up.fill", title: "Flashcard Set")
                 }
                 .padding(.horizontal, 25)
                 .padding(.top, 40)
@@ -66,7 +65,7 @@ struct CreateFlashCardView: View {
     }
 }
 
-struct FlashcardActionButton: View {
+struct TestActionButton: View {
     var icon: String
     var title: String
     
@@ -100,7 +99,7 @@ struct FlashcardActionButton: View {
 
 #Preview {
     NavigationStack {
-        CreateFlashCardView()
+        CreatePracticeTestView()
             .environment(AppViewModel())
     }
 }
