@@ -10,13 +10,14 @@ import SwiftUI
 import SwiftData
 
 struct LoginView: View {
-    @State private var viewModel = AppViewModel()
+    @Environment(AppViewModel.self) private var viewModel
     @State private var rememberMe = false
     
     @Query var allUsers: [User]
 
     
     var body: some View {
+        @Bindable var viewModel = viewModel 
         ZStack {
             // Background Blue
             Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
@@ -184,5 +185,6 @@ struct LoginView: View {
 #Preview {
     NavigationStack {
         LoginView()
+            .environment(AppViewModel())
     }
 }

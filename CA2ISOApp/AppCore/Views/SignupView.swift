@@ -3,10 +3,12 @@ import SwiftUI
 import SwiftData
 
 struct SignupView: View {
-    @State private var viewModel = AppViewModel()
+    @Environment(AppViewModel.self) private var viewModel
+    
     @Environment(\.modelContext) private var modelContext
     
     var body: some View {
+        @Bindable var viewModel = viewModel 
         ZStack {
             // Background Blue
             Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
@@ -157,5 +159,6 @@ struct SocialButton: View {
 #Preview {
     NavigationStack {
         SignupView()
+            .environment(AppViewModel())
     }
 }
