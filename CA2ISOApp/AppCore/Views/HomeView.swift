@@ -6,92 +6,99 @@
 //
 
 import Foundation
+//
+//  Home.swift
+//  CA2ISOApp
+//
+//  Created by Aoife on 24/03/2026.
+//
+
+import Foundation
 import SwiftUI
 
 struct HomeView: View {
     @Environment(AppViewModel.self) private var viewModel
-        
     
     // Colors for the subject cards
     let cardColors: [Color] = [.orange, .red, .purple, .pink, .green, .blue]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // HEADER (Profile, Welcome, Streak)
-            HStack {
-                Circle()
-                    .fill(.gray.opacity(0.3))
-                    .frame(width: 50, height: 50)
-                    .overlay(Image(systemName: "person.fill").foregroundColor(.white))
-                
-                Text("Welcome Back!")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.blue)
-                
-                Spacer()
-                
-                HStack(spacing: 5) {
-                    Text("🔥 \(viewModel.streakCount)")
-                    Image(systemName: "heart")
-                        .foregroundColor(.blue)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.top, 20)
-           
-            HStack {
-                Text("Subjects")
-                    .font(.headline)
-                    .foregroundColor(.blue)
-                    .padding(.horizontal)
-                
-                Spacer()
-                
-                // NAVIGATION LINK TO PICKER
-                NavigationLink(destination: SubjectPickerView()) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "plus.circle.fill")
-                        
-                    }
-                    .foregroundColor(.blue)
-                    .padding(.horizontal) // Added this to fix the edge issue
-                            .padding(.top, 30)
-                }
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 15) {
-                    // Loop through subjects added from SubjectPickerView
-                    ForEach(Array(viewModel.chosenSubjects.enumerated()), id: \.offset) { index, subject in
-                        SubjectCard(
-                            title: subject,
-                            color: cardColors[index % cardColors.count]
-                        )
-                    }
+        // 1. ZStack with bottom alignment is the "Best Practice" for custom nav bars
+        ZStack(alignment: .bottom) {
+            
+            // 2. MAIN CONTENT AREA
+            VStack(alignment: .leading, spacing: 0) {
+                // HEADER (Profile, Welcome, Streak)
+                HStack {
+                    Circle()
+                        .fill(.gray.opacity(0.3))
+                        .frame(width: 50, height: 50)
+                        .overlay(Image(systemName: "person.fill").foregroundColor(.white))
                     
-                    // Fallback if list is empty
-                    if viewModel.chosenSubjects.isEmpty {
-                        Text("No subjects added yet.")
-                            .foregroundColor(.gray)
-                            .padding()
+                    Text("Welcome Back!")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundColor(.blue)
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 5) {
+                        Text("🔥 \(viewModel.streakCount)")
+                        Image(systemName: "heart")
+                            .foregroundColor(.blue)
                     }
                 }
                 .padding(.horizontal)
-                .padding(.top, 10)
+                .padding(.top, 20)
+               
+                // SUBJECTS HEADER
+                HStack {
+                    Text("Subjects")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                    
+                    Spacer()
+                    
+                    // Link to the Picker screen
+                    NavigationLink(destination: SubjectPickerView()) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(.blue)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.top, 30)
+
+                // SUBJECT CARDS SCROLL
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 15) {
+                        ForEach(Array(viewModel.chosenSubjects.enumerated()), id: \.offset) { index, subject in
+                            SubjectCard(
+                                title: subject,
+                                color: cardColors[index % cardColors.count]
+                            )
+                        }
+                        
+                        if viewModel.chosenSubjects.isEmpty {
+                            Text("No subjects added yet.")
+                                .foregroundColor(.gray)
+                                .padding(.vertical, 40)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 15)
+                }
+
+                Spacer() // Pushes everything above to the top
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             
-            
-
-            Spacer()
-
-            
+            CustomNavBar(selectedTab: 0)
         }
         .navigationBarBackButtonHidden(true)
     }
 }
-
 
 struct SubjectCard: View {
     var title: String
@@ -104,7 +111,7 @@ struct SubjectCard: View {
                 .fontWeight(.bold)
                 .foregroundColor(.white)
             Spacer()
-            Image(systemName: "brain.head.profile") // Placeholder for your icons
+            Image(systemName: "brain.head.profile")
                 .font(.system(size: 40))
                 .foregroundColor(.white.opacity(0.8))
         }
@@ -115,11 +122,9 @@ struct SubjectCard: View {
     }
 }
 
-
-
-
-
 #Preview {
-    HomeView()
-        .environment(AppViewModel())
+    NavigationStack {
+        HomeView()
+            .environment(AppViewModel())
+    }
 }
