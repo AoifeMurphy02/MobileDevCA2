@@ -25,6 +25,9 @@ class AppViewModel {
     
     // was sign up successful if so we move screens
     var isSignedUp = false
+    
+    // Logic to control the pop-up sheet
+       var showCreateSheet = false 
 
     //  save the user
     func signUpUser(modelContext: ModelContext) {

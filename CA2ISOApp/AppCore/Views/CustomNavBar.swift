@@ -12,10 +12,11 @@ struct CustomNavBar: View {
     // This tells the bar which tab is currently selected
     // 0 = Home, 1 = Add, 2 = Clock
     var selectedTab: Int
+    @Environment(AppViewModel.self) private var viewModel
 
     var body: some View {
         VStack(spacing: 0) {
-            Divider().opacity(0.1) // Subtle line to separate from content
+            Divider().opacity(0.1) 
             
             HStack {
                 Spacer()
@@ -28,17 +29,28 @@ struct CustomNavBar: View {
                 Spacer()
                 
                 // --- ADD BUTTON ---
-                NavigationLink(destination: CreateResourceView()) {
-                    Image(systemName: "plus")
-                        .font(.title2)
-                        .foregroundColor(.black)
-                }
+                Button(action: {
+                                    // This triggers the pop-up sheet on the HomeView
+                                    viewModel.showCreateSheet = true
+                                }) {
+                                    ZStack {
+                                        // Shows the blue circle if we are currently on the "Add" state
+                                        if selectedTab == 1 {
+                                            Circle()
+                                                .fill(Color.blue.opacity(0.3))
+                                                .frame(width: 50, height: 50)
+                                        }
+                                        
+                                        Image(systemName: "plus")
+                                            .font(.title2)
+                                            .foregroundColor(.black)
+                                    }
+                                }
                 
                 Spacer()
                 
                 // --- CLOCK BUTTON ---
-                // Replace 'Text("History")' with timer screen when ready
-                // Inside CustomNavBar.swift
+                
                 NavigationLink(destination: TimerView()) {
                     NavBarIcon(iconName: "clock", isSelected: selectedTab == 2)
                 }
