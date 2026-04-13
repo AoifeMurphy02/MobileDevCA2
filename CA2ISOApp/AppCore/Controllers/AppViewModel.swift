@@ -7,6 +7,7 @@
 import Foundation
 import Observation
 import SwiftData
+import UserNotifications
 
 // Define the possible screens for navigation
 enum NavTarget: Hashable {
@@ -123,4 +124,28 @@ class AppViewModel {
             print("DEBUG: Could not find user [\(sessionEmail)] in database. Total users: \(users.count)")
         }
     }
+    class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+           func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                       willPresent notification: UNNotification,
+                                       withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+               // This forces the banner and sound to appear while the app is open
+               completionHandler([.banner, .sound, .list])
+           }
+       }
+       
+       // 3. Keep a reference to it
+       let notificationDelegate = NotificationDelegate()
+
+       init() {
+           // 4. Register the delegate and request permission on launch
+           let center = UNUserNotificationCenter.current()
+           center.delegate = notificationDelegate
+           center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+               if granted {
+                   print("DEBUG: Notification permission granted.")
+               } else {
+                   print("DEBUG: Notification permission denied.")
+               }
+           }
+       }
 }
