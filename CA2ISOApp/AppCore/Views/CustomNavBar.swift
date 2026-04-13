@@ -54,7 +54,9 @@ struct CustomNavBar: View {
                 
                 // --- CLOCK BUTTON ---
                 
-                NavigationLink(destination: TimerView()) {
+                Button(action: {
+                    viewModel.activeNavigation = .timer
+                }) {
                     NavBarIcon(iconName: "clock", isSelected: selectedTab == 2)
                 }
                 

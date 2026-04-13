@@ -14,6 +14,7 @@ enum NavTarget: Hashable {
     case flashcards
     case studyGuide
     case practiceTests
+    case timer
 }
 
 @Observable
@@ -86,7 +87,7 @@ class AppViewModel {
         if let foundUser = users.first(where: { $0.email.lowercased() == cleanEmail }) {
             if foundUser.password == password {
                 self.currentUserEmail = foundUser.email // Remember the user
-                self.chosenSubjects = foundUser.savedSubjects // LOAD THEIR SUBJECTS
+                self.chosenSubjects = foundUser.savedSubjects // LOAD SUBJECTS
                 self.isLoggedIn = true
             }
             else {
@@ -133,11 +134,11 @@ class AppViewModel {
            }
        }
        
-       // 3. Keep a reference to it
+       // Keep a reference to it
        let notificationDelegate = NotificationDelegate()
 
        init() {
-           // 4. Register the delegate and request permission on launch
+           // Register the delegate and request permission on launch
            let center = UNUserNotificationCenter.current()
            center.delegate = notificationDelegate
            center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in

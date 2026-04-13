@@ -71,7 +71,10 @@ struct HomeView: View {
                 CreateStudyGuideView()
             case .practiceTests:
                 CreatePracticeTestView()
+            case .timer: 
+                  TimerView()
             }
+            
         }
         .navigationBarBackButtonHidden(true)
         // THE MODAL POP-UP LOGIC

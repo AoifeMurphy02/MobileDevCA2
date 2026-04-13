@@ -86,7 +86,7 @@ struct StudyGuideActionButton: View {
             .padding(.vertical, 18)
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity)
-            // THE STYLING: Blue border with rounded corners
+           
             .background(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
