@@ -1,21 +1,15 @@
-//
-//  TimerViewModel.swift
-//  CA2ISOApp
-//
-//  Created by Aoife on 01/04/2026.
-//
-
 import Foundation
 import Observation
 import UserNotifications
 
 @Observable
 class TimerViewModel {
-    var timeRemaining = 1500 // 25 minutes in seconds
+    
+    
+    var timeRemaining = 1500 // 25 minutes
     var isActive = false
     var timer: Timer?
     
-    // Format seconds into 00:00 string
     func formatTime() -> String {
         let minutes = timeRemaining / 60
         let seconds = timeRemaining % 60
@@ -26,7 +20,6 @@ class TimerViewModel {
         if isActive {
             timer?.invalidate()
         } else {
-            // Start the timer
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
                 if self.timeRemaining > 0 {
                     self.timeRemaining -= 1
@@ -50,7 +43,15 @@ class TimerViewModel {
         sendNotification()
     }
     
-    // BRIEF REQUIREMENT: Local Notifications
+    func setDuration(minutes: Int) {
+        // Stop any running timer
+        timer?.invalidate()
+        isActive = false
+        
+        // Set the new time (Minutes * 60 seconds)
+        self.timeRemaining = minutes * 60
+    }
+
     func sendNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Study Session Complete!"
@@ -59,7 +60,6 @@ class TimerViewModel {
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-        
         UNUserNotificationCenter.current().add(request)
     }
 }

@@ -54,12 +54,12 @@ struct CreateResourceView: View {
     }
 }
 
-// 3. Update the button component to accept an action
+//  Update the button component to accept an action
 struct ResourceActionButton: View {
     var title: String
     var icon: String
     var iconColor: Color
-    var action: () -> Void // New parameter for the click action
+    var action: () -> Void 
     
     var body: some View {
         Button(action: action) { // Triggers the navigation logic

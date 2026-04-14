@@ -1,27 +1,37 @@
-//
-//  TimerView.swift
-//  CA2ISOApp
-//
-//  Created by Aoife on 01/04/2026.
-//
-
-import Foundation
 import SwiftUI
 
 struct TimerView: View {
+    
     @State private var timerVM = TimerViewModel()
     @Environment(AppViewModel.self) private var viewModel
     
+    @State private var showTimePicker = false
+    @State private var selectedMinutes = 25 // Default value for the picker
+    
     var body: some View {
-        
         @Bindable var viewModel = viewModel
         
         ZStack(alignment: .bottom) {
             VStack(spacing: 40) {
                 Spacer()
                 
-                Text(timerVM.formatTime())
-                    .font(.system(size: 80, weight: .bold, design: .rounded))
+                VStack(spacing: 5) {
+                                    Text(timerVM.formatTime())
+                                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                                        .onTapGesture {
+                                            // Only allow changing time if timer isn't running
+                                            if !timerVM.isActive {
+                                                showTimePicker = true
+                                            }
+                                        }
+                                    
+                                    if !timerVM.isActive {
+                                        Text("Tap to set time")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                
                 
                 Image("owl_mascot")
                     .resizable()
@@ -32,6 +42,7 @@ struct TimerView: View {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     }
                 
+                // PLAY/PAUSE BUTTON
                 Button(action: { timerVM.toggleTimer() }) {
                     Image(systemName: timerVM.isActive ? "pause.fill" : "play.fill")
                         .font(.system(size: 40))
@@ -45,41 +56,50 @@ struct TimerView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white)
             
-            // The reusable bar
+            // Reusable Nav Bar
             CustomNavBar(selectedTab: 2)
         }
-        // Moves to Flashcards/Tests from the Timer screen
-        .navigationDestination(item: $viewModel.activeNavigation) { target in
-            switch target {
-            case .flashcards:
-                CreateFlashCardView()
-            case .studyGuide:
-                CreateStudyGuideView()
-            case .practiceTests:
-                CreatePracticeTestView()
+        .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $showTimePicker) {
+                    VStack(spacing: 20) {
+                        Text("Set Study Duration")
+                            .font(.headline)
+                            .padding(.top)
+                        
+                        Picker("Minutes", selection: $selectedMinutes) {
+                            ForEach(1...60, id: \.self) { min in
+                                Text("\(min) minutes").tag(min)
+                            }
+                        }
+                        .pickerStyle(.wheel) // the iOS wheel look
+                        
+                        Button(action: {
+                            timerVM.setDuration(minutes: selectedMinutes)
+                            showTimePicker = false
+                        }) {
+                            Text("Set Timer")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .clipShape(Capsule())
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom)
+                    }
+                    .presentationDetents([.height(300)]) // Small pop-up height
+                }
+                
+                // Existing global sheet for CreateResourceView
+                .sheet(isPresented: $viewModel.showCreateSheet) {
+                    CreateResourceView().presentationDetents([.medium])
+                }
             }
         }
-        // Shows the Create New sheet on the Timer screen
-        .sheet(isPresented: $viewModel.showCreateSheet) {
-            CreateResourceView()
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
-        .navigationBarBackButtonHidden(true)
-        .onAppear {
-            // Prevent navigation loops
-            viewModel.activeNavigation = nil
-            
-            // Notification Permissions
-            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
-        }
-    }
-}
-
 
 #Preview {
     NavigationStack {
-        TimerView()
-            .environment(AppViewModel())
+        TimerView().environment(AppViewModel())
     }
 }
