@@ -4,6 +4,8 @@ import UserNotifications
 
 @Observable
 class TimerViewModel {
+    
+    
     var timeRemaining = 1500 // 25 minutes
     var isActive = false
     var timer: Timer?
@@ -39,6 +41,15 @@ class TimerViewModel {
         timer?.invalidate()
         isActive = false
         sendNotification()
+    }
+    
+    func setDuration(minutes: Int) {
+        // Stop any running timer
+        timer?.invalidate()
+        isActive = false
+        
+        // Set the new time (Minutes * 60 seconds)
+        self.timeRemaining = minutes * 60
     }
 
     func sendNotification() {
