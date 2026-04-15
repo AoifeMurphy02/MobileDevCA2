@@ -6,7 +6,6 @@
 //
 
 import Foundation
-
 import SwiftUI
 
 struct CreateResourceView: View {
@@ -14,28 +13,32 @@ struct CreateResourceView: View {
     
     var body: some View {
         ZStack(alignment: .bottom) {
+            // Dimmable Background
             Color.gray.opacity(0.1).ignoresSafeArea()
             
             VStack(spacing: 0) {
+                // Top Grabber Handle
                 Capsule()
                     .fill(Color.gray.opacity(0.3))
                     .frame(width: 60, height: 6)
                     .padding(.top, 15)
                 
                 VStack(spacing: 25) {
-                    //Buttons with navigation logic
+                    // 1. Flashcards Button
                     ResourceActionButton(title: "Create Flashcards Set", icon: "doc.on.doc.fill", iconColor: .cyan) {
-                        viewModel.activeNavigation = .flashcards
+                        viewModel.pendingNavigation = .flashcards
                         viewModel.showCreateSheet = false
                     }
                     
+                    // 2. Study Guide Button
                     ResourceActionButton(title: "Create Study Guide", icon: "book.pages.fill", iconColor: .purple) {
-                        viewModel.activeNavigation = .studyGuide
+                        viewModel.pendingNavigation = .studyGuide
                         viewModel.showCreateSheet = false
                     }
                     
+                    // 3. Practice Tests Button
                     ResourceActionButton(title: "Create Practice Tests", icon: "checklist", iconColor: .green) {
-                        viewModel.activeNavigation = .practiceTests
+                        viewModel.pendingNavigation = .practiceTests
                         viewModel.showCreateSheet = false
                     }
                 }
@@ -43,6 +46,8 @@ struct CreateResourceView: View {
                 .padding(.horizontal, 30)
                 
                 Spacer()
+                
+                // Navigation Bar
                 CustomNavBar(selectedTab: 1)
             }
             .frame(maxWidth: .infinity, maxHeight: UIScreen.main.bounds.height * 0.55)
@@ -54,15 +59,14 @@ struct CreateResourceView: View {
     }
 }
 
-//  Update the button component to accept an action
 struct ResourceActionButton: View {
     var title: String
     var icon: String
     var iconColor: Color
-    var action: () -> Void 
+    var action: () -> Void
     
     var body: some View {
-        Button(action: action) { // Triggers the navigation logic
+        Button(action: action) {
             HStack(spacing: 20) {
                 Image(systemName: icon)
                     .font(.system(size: 30))
@@ -84,10 +88,11 @@ struct ResourceActionButton: View {
     }
 }
 
+
+
 #Preview {
     NavigationStack {
         CreateResourceView()
             .environment(AppViewModel())
     }
 }
-

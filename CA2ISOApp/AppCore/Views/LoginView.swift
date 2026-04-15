@@ -116,7 +116,7 @@ struct LoginView: View {
                     }
                     
                     // Link to Sign Up
-                    NavigationLink(destination: SignupView()) {
+                    NavigationLink(value: NavTarget.signup)  {
                         HStack(spacing: 4) {
                             Text("Don't have an Account?")
                                 .foregroundColor(.gray)

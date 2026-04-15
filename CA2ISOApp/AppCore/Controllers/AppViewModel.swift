@@ -8,17 +8,25 @@ import Foundation
 import Observation
 import SwiftData
 import UserNotifications
+import SwiftUI
 
 // Define the possible screens for navigation
 enum NavTarget: Hashable {
+    case signup
+    case login
+    case home
+    case subjectPicker
     case flashcards
     case studyGuide
     case practiceTests
     case timer
+    case createFlashcardsManually
 }
 
 @Observable
 class AppViewModel {
+    
+    var navPath = NavigationPath()
     
     var email = ""
     var password = ""
@@ -41,6 +49,7 @@ class AppViewModel {
     
     
     var activeNavigation: NavTarget? = nil
+    var pendingNavigation: NavTarget? = nil
     
     //  save the user
     func signUpUser(modelContext: ModelContext) {
