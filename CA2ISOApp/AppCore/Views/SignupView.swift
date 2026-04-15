@@ -65,7 +65,9 @@ struct SignupView: View {
                     .padding(.horizontal, 30)
                     
                     // The sign up Button
+                    
                     Button(action: {
+                        
                         viewModel.signUpUser(modelContext: modelContext)
                     }) {
                         HStack {
@@ -93,7 +95,7 @@ struct SignupView: View {
                     }
                     
                     // Link to Login
-                    NavigationLink(destination: LoginView()) {
+                    NavigationLink(value: NavTarget.login) {
                         HStack(spacing: 4) {
                             Text("Already have an Account?")
                                 .foregroundColor(.gray)

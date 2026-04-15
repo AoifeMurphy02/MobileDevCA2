@@ -21,17 +21,20 @@ struct CustomNavBar: View {
             HStack {
                 Spacer()
                 
-                // Change the Home NavigationLink to this:
                 Button(action: {
-                    viewModel.activeNavigation = nil // Just clear the path
+                    viewModel.navPath = NavigationPath()
+                                        viewModel.navPath.append(NavTarget.home)
+                                        viewModel.showCreateSheet = false
+                    
                 }) {
+                    
                     NavBarIcon(iconName: "house", isSelected: selectedTab == 0)
                 }
                 
                 
                 Spacer()
                 
-                // --- ADD BUTTON ---
+                // add
                 Button(action: {
                                     // This triggers the pop-up sheet on the HomeView
                                     viewModel.showCreateSheet = true
@@ -52,10 +55,11 @@ struct CustomNavBar: View {
                 
                 Spacer()
                 
-                // --- CLOCK BUTTON ---
+                // clock
                 
                 Button(action: {
-                    viewModel.activeNavigation = .timer
+                    viewModel.navPath.append(NavTarget.timer)
+                    viewModel.showCreateSheet = false
                 }) {
                     NavBarIcon(iconName: "clock", isSelected: selectedTab == 2)
                 }
@@ -71,7 +75,6 @@ struct CustomNavBar: View {
     }
 }
 
-// Sub-view for the individual icons to keep the code clean
 struct NavBarIcon: View {
     var iconName: String
     var isSelected: Bool

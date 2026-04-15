@@ -7,31 +7,69 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct CA2ISOAppApp: App {
     @State private var viewModel = AppViewModel()
 
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-            User.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+    //  Handle notifications while app is open
+    class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+        func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+            completionHandler([.banner, .sound])
         }
-    }()
+    }
+    
+    let notifyDelegate = NotificationDelegate()
+
+    init() {
+        // 2. Request Permissions on launch
+        let center = UNUserNotificationCenter.current()
+        center.delegate = notifyDelegate
+        center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+            print(granted ? "Notifications Allowed" : "Notifications Denied")
+        }
+    }
 
     var body: some Scene {
         WindowGroup {
-            //ContentView()
-            StartView()
+            @Bindable var viewModel = viewModel
+            
+            // THE GLOBAL NAVIGATION ENGINE
+            NavigationStack(path: $viewModel.navPath) {
+                StartView()
+                    .navigationDestination(for: NavTarget.self) { target in
+                        switch target {
+                        case .signup: SignupView()
+                        case .login: LoginView()
+                        case .home: HomeView()
+                        case .subjectPicker: SubjectPickerView()
+                        case .flashcards: CreateFlashCardView()
+                        case .studyGuide: CreateStudyGuideView()
+                        case .practiceTests: CreatePracticeTestView()
+                        case .timer: TimerView()
+                        case .createFlashcardsManually: CreateFlashcardManualView()
+                        }
+                    }
+            }
+            .environment(viewModel)
+            // THE GLOBAL POP-UP (Triggered by the + button)
+            .sheet(isPresented: $viewModel.showCreateSheet) {
+                CreateResourceView()
+                    .presentationDetents([.medium])
+            }
+            //  Wait for sheet to close before sliding
+            .onChange(of: viewModel.showCreateSheet) { oldValue, newValue in
+                if newValue == false, let target = viewModel.pendingNavigation {
+                    viewModel.pendingNavigation = nil
+                    // Delay prevents the 'Snapshotting' freeze
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        viewModel.navPath.append(target)
+                    }
+                }
+            }
+            .environment(viewModel)
         }
-        .environment(viewModel)
-        .modelContainer(sharedModelContainer)
+        .modelContainer(for: [User.self])
     }
 }

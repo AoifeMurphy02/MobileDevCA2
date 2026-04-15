@@ -1,19 +1,7 @@
-//
 //  Home.swift
 //  CA2ISOApp
-//
-//  Created by Aoife on 24/03/2026.
-//
+//  Created by Aoife on 24/03/2026
 
-import Foundation
-//
-//  Home.swift
-//  CA2ISOApp
-//
-//  Created by Aoife on 24/03/2026.
-//
-
-import Foundation
 import SwiftUI
 
 struct HomeView: View {
@@ -21,10 +9,9 @@ struct HomeView: View {
     let cardColors: [Color] = [.orange, .red, .purple, .pink, .green, .blue]
 
     var body: some View {
-        @Bindable var viewModel = viewModel
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
-                // HEADER
+                // --- HEADER ---
                 HStack {
                     Circle().fill(.gray.opacity(0.3)).frame(width: 50, height: 50)
                         .overlay(Image(systemName: "person.fill").foregroundColor(.white))
@@ -36,18 +23,22 @@ struct HomeView: View {
                     }
                 }
                 .padding(.horizontal).padding(.top, 20)
-               
-                // SUBJECTS HEADER
+                
+                // --- SUBJECTS HEADER ---
                 HStack {
                     Text("Subjects").font(.headline).foregroundColor(.blue)
                     Spacer()
-                    NavigationLink(destination: SubjectPickerView()) {
-                        Image(systemName: "plus.circle.fill").font(.title3).foregroundColor(.blue)
+                    
+                    // We use .subjectPicker value for the Global Router
+                    NavigationLink(value: NavTarget.subjectPicker) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .foregroundColor(.blue)
                     }
                 }
                 .padding(.horizontal).padding(.top, 30)
-
-                // SUBJECT CARDS
+                
+                // --- SUBJECT CARDS ---
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 15) {
                         ForEach(Array(viewModel.chosenSubjects.enumerated()), id: \.offset) { index, subject in
@@ -59,31 +50,16 @@ struct HomeView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
+            
+            // Reusable bottom bar
             CustomNavBar(selectedTab: 0)
         }
-       
-        .navigationDestination(item: $viewModel.activeNavigation) { target in
-            switch target {
-            case .flashcards:
-                CreateFlashCardView()
-            case .studyGuide:
-                CreateStudyGuideView()
-            case .practiceTests:
-                CreatePracticeTestView()
-            case .timer: 
-                  TimerView()
-            }
-            
-        }
         .navigationBarBackButtonHidden(true)
-        // THE MODAL POP-UP LOGIC
-        .sheet(isPresented: $viewModel.showCreateSheet) {
-            CreateResourceView()
-                .presentationDetents([.medium]) // Half-height pop-up
-                .presentationDragIndicator(.visible) // The "grabber" handle
+        .onAppear {
+            // Clears any pending navigation when we land home
+            viewModel.pendingNavigation = nil
         }
-    } 
+    }
 }
 
 struct SubjectCard: View {
@@ -107,7 +83,6 @@ struct SubjectCard: View {
         .cornerRadius(20)
     }
 }
-
 #Preview {
     NavigationStack {
         HomeView()

@@ -40,10 +40,26 @@ struct CreateFlashCardView: View {
                
               
                 VStack(spacing: 20) {
-                    FlashcardActionButton(icon: "camera", title: "Scan document")
-                    FlashcardActionButton(icon: "paperclip", title: "Select file")
-                    FlashcardActionButton(icon: "textformat", title: "Create manually")
-                    FlashcardActionButton(icon: "photo", title: "Select Image")
+             
+                    FlashcardActionButton(icon: "camera", title: "Scan document") {
+                        print("Scan document tapped")
+                    }
+                    
+                    
+                    FlashcardActionButton(icon: "paperclip", title: "Select file") {
+                        print("Select file tapped")
+                    }
+
+                    
+                    FlashcardActionButton(icon: "textformat", title: "Create manually") {
+                        // This triggers the navigation to the manual entry screen
+                        viewModel.activeNavigation = .createFlashcardsManually
+                    }
+                    
+                    
+                    FlashcardActionButton(icon: "photo", title: "Select Image") {
+                        print("Select image tapped")
+                    }
                 }
                 .padding(.horizontal, 25)
                 .padding(.top, 40)
@@ -57,6 +73,25 @@ struct CreateFlashCardView: View {
             CustomNavBar(selectedTab: 1) // Plus tab is active
         }
         .navigationBarBackButtonHidden(true)
+        .navigationDestination(item: $viewModel.activeNavigation) { target in
+                    switch target {
+                    
+                    case .signup: SignupView()
+                    case .login: LoginView()
+                    case .home: HomeView()
+                    case .subjectPicker: SubjectPickerView()
+                    case .flashcards:
+                        CreateFlashCardView()
+                    case .studyGuide:
+                        CreateStudyGuideView()
+                    case .practiceTests:
+                        CreatePracticeTestView()
+                    case .timer:
+                        TimerView()
+                    case .createFlashcardsManually:
+                        CreateFlashcardManualView()
+                    }
+                }
         // This handles the pop-up if the user clicks +
         .sheet(isPresented: $viewModel.showCreateSheet) {
             CreateResourceView()
@@ -66,37 +101,38 @@ struct CreateFlashCardView: View {
     }
 }
 
-struct FlashcardActionButton: View {
-    var icon: String
-    var title: String
-    
-    var body: some View {
-        Button(action: {
-            print("\(title) tapped")
-        }) {
-            HStack(spacing: 15) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: .semibold))
-                
-                Text(title)
-                    .font(.system(size: 18, weight: .bold))
-                
-                Spacer()
+    struct FlashcardActionButton: View {
+        var icon: String
+        var title: String
+        var action: () -> Void // This is the instruction passed from above
+        
+        var body: some View {
+            // THE FIX: Call the 'action' closure here
+            Button(action: action) {
+                HStack(spacing: 15) {
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .frame(width: 30) // Ensures icons line up
+                    
+                    Text(title)
+                        .font(.system(size: 18, weight: .bold))
+                    
+                    Spacer()
+                }
+                .foregroundColor(.black)
+                .padding(.vertical, 18)
+                .padding(.horizontal, 20)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
+                )
+                .background(Color.white)
+                .cornerRadius(12)
             }
-            .foregroundColor(.black)
-            .padding(.vertical, 18)
-            .padding(.horizontal, 20)
-            .frame(maxWidth: .infinity)
-            // THE STYLING: Blue border with rounded corners
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
-            )
-            .background(Color.white)
-            .cornerRadius(12)
         }
     }
-}
+
 
 #Preview {
     NavigationStack {
