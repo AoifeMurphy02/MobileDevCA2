@@ -45,6 +45,7 @@ struct CA2ISOAppApp: App {
                         case .home: HomeView()
                         case .subjectPicker: SubjectPickerView()
                         case .flashcards: CreateFlashCardView()
+                        case .flashcardReview: FlashcardReviewView()
                         case .studyGuide: CreateStudyGuideView()
                         case .practiceTests: CreatePracticeTestView()
                         case .timer: TimerView()
@@ -70,6 +71,6 @@ struct CA2ISOAppApp: App {
             }
             .environment(viewModel)
         }
-        .modelContainer(for: [User.self])
+        .modelContainer(for: [User.self, FlashcardSet.self, Flashcard.self])
     }
 }
