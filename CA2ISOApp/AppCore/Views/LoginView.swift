@@ -40,6 +40,12 @@ struct LoginView: View {
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                         .padding(.top, 30)
+
+                    Text("Sign in to open your study spaces, saved decks, and streak.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 36)
                     
                     // Email Field
                     HStack {
@@ -87,9 +93,7 @@ struct LoginView: View {
                     
                     
                     Button(action: {
-                     
                         viewModel.loginUser(users: allUsers)
-                        
                     }) {
                         HStack {
                             Spacer()
@@ -136,8 +140,13 @@ struct LoginView: View {
         }
         // Hides the automatic back button to keep the design clean
         .navigationBarBackButtonHidden(true)
+        .enableSwipeBack()
         .navigationDestination(isPresented: $viewModel.isLoggedIn) {
-            HomeView()
+            if viewModel.subjectOptions.isEmpty {
+                SubjectPickerView()
+            } else {
+                HomeView()
+            }
         }
     }
     
