@@ -11,11 +11,7 @@ import SwiftUI
 import SwiftUI
 
 struct CreatePracticeTestView: View {
-    @Environment(AppViewModel.self) private var viewModel
-    
     var body: some View {
-        @Bindable var viewModel = viewModel
-        
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 15) {
@@ -56,12 +52,7 @@ struct CreatePracticeTestView: View {
             CustomNavBar(selectedTab: 1) // Plus tab is active
         }
         .navigationBarBackButtonHidden(true)
-        // This handles the pop-up if the user clicks +
-        .sheet(isPresented: $viewModel.showCreateSheet) {
-            CreateResourceView()
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
+        .enableSwipeBack()
     }
 }
 
