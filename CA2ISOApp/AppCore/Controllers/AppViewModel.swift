@@ -17,6 +17,7 @@ enum NavTarget: Hashable {
     case home
     case subjectPicker
     case flashcards
+    case flashcardReview
     case studyGuide
     case practiceTests
     case timer
@@ -36,6 +37,7 @@ class AppViewModel {
     var loginError = ""    // For error handling
     
     var chosenSubjects: [String] = []
+    var activeSubject = ""
     var currentUserEmail: String?
     //hardcoded for now
     var streakCount: Int = 2
@@ -47,9 +49,30 @@ class AppViewModel {
     // Logic to control the pop-up sheet
     var showCreateSheet = false
     
+    var flashcardDraftTitle = ""
+    var flashcardDraftSourceType = ""
+    var flashcardDraftSubject = ""
+    var flashcardDraftTopic = ""
+    var flashcardDraftRawText = ""
+    var flashcardDraftCards: [FlashcardDraft] = []
     
-    var activeNavigation: NavTarget? = nil
     var pendingNavigation: NavTarget? = nil
+
+    var hasFlashcardDraft: Bool {
+        !flashcardDraftCards.isEmpty
+    }
+
+    var subjectOptions: [String] {
+        uniqueSubjects(from: chosenSubjects)
+    }
+
+    var defaultSubjectForCreation: String {
+        if !activeSubject.isEmpty {
+            return activeSubject
+        }
+
+        return subjectOptions.first ?? ""
+    }
     
     //  save the user
     func signUpUser(modelContext: ModelContext) {
@@ -57,6 +80,8 @@ class AppViewModel {
             print("Error: Missing information")
             return
         }
+
+        loginError = ""
         
         // Clean the email before saving
         let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -70,7 +95,7 @@ class AppViewModel {
             
             try modelContext.save()
             self.currentUserEmail = cleanEmail // Set the session immediately
-            self.chosenSubjects = []
+            applyChosenSubjects([])
             print("SUCCESS: User \(cleanEmail) saved to SwiftData!")
             
             // 3. Double Check: Verify the save worked right now
@@ -89,6 +114,7 @@ class AppViewModel {
     // searches SwiftData for a matching user
     func loginUser(users: [User]) {
         print("Users found in database: \(users.count)")
+        loginError = ""
         
         let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         print("Searching for cleaned email: [\(cleanEmail)]")
@@ -96,7 +122,7 @@ class AppViewModel {
         if let foundUser = users.first(where: { $0.email.lowercased() == cleanEmail }) {
             if foundUser.password == password {
                 self.currentUserEmail = foundUser.email // Remember the user
-                self.chosenSubjects = foundUser.savedSubjects // LOAD SUBJECTS
+                applyChosenSubjects(foundUser.savedSubjects)
                 self.isLoggedIn = true
             }
             else {
@@ -121,12 +147,12 @@ class AppViewModel {
         if let userInDB = users.first(where: { $0.email.lowercased() == sessionEmail }) {
             
             // Sync the data
-            userInDB.savedSubjects = self.chosenSubjects
+            userInDB.savedSubjects = self.subjectOptions
             
             do {
                 // Force SwiftData to write the change to the disk
                 try modelContext.save()
-                print("SUCCESS: Saved \(self.chosenSubjects.count) subjects for user: \(sessionEmail)")
+                print("SUCCESS: Saved \(self.subjectOptions.count) subjects for user: \(sessionEmail)")
             } catch {
                 print("ERROR: Could not save to database: \(error.localizedDescription)")
             }
@@ -158,4 +184,61 @@ class AppViewModel {
                }
            }
        }
+
+    func loadFlashcardDraft(_ draft: FlashcardDeckDraft) {
+        flashcardDraftTitle = draft.title
+        flashcardDraftSourceType = draft.sourceType
+        flashcardDraftSubject = draft.subject.isEmpty ? defaultSubjectForCreation : draft.subject
+        flashcardDraftTopic = draft.topic
+        flashcardDraftRawText = draft.rawText
+        flashcardDraftCards = draft.cards
+    }
+
+    func clearFlashcardDraft() {
+        flashcardDraftTitle = ""
+        flashcardDraftSourceType = ""
+        flashcardDraftSubject = ""
+        flashcardDraftTopic = ""
+        flashcardDraftRawText = ""
+        flashcardDraftCards = []
+    }
+
+    func addEmptyFlashcardDraft(style: FlashcardPromptStyle = .summary) {
+        flashcardDraftCards.append(
+            FlashcardDraft(
+                question: "",
+                answer: "",
+                style: style
+            )
+        )
+    }
+
+    func applyChosenSubjects(_ subjects: [String]) {
+        chosenSubjects = uniqueSubjects(from: subjects)
+
+        if !activeSubject.isEmpty, chosenSubjects.contains(activeSubject) {
+            return
+        }
+
+        activeSubject = chosenSubjects.first ?? ""
+    }
+
+    func selectSubject(_ subject: String) {
+        activeSubject = subject
+    }
+
+    private func uniqueSubjects(from subjects: [String]) -> [String] {
+        var seen = Set<String>()
+        var orderedSubjects: [String] = []
+
+        for subject in subjects {
+            let normalizedSubject = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalizedSubject.isEmpty, !seen.contains(normalizedSubject) else { continue }
+
+            seen.insert(normalizedSubject)
+            orderedSubjects.append(normalizedSubject)
+        }
+
+        return orderedSubjects
+    }
 }

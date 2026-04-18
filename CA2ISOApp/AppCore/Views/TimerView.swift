@@ -3,14 +3,11 @@ import SwiftUI
 struct TimerView: View {
     
     @State private var timerVM = TimerViewModel()
-    @Environment(AppViewModel.self) private var viewModel
     
     @State private var showTimePicker = false
     @State private var selectedMinutes = 25 // Default value for the picker
     
     var body: some View {
-        @Bindable var viewModel = viewModel
-        
         ZStack(alignment: .bottom) {
             VStack(spacing: 40) {
                 Spacer()
@@ -60,6 +57,7 @@ struct TimerView: View {
             CustomNavBar(selectedTab: 2)
         }
         .navigationBarBackButtonHidden(true)
+        .enableSwipeBack()
         .sheet(isPresented: $showTimePicker) {
                     VStack(spacing: 20) {
                         Text("Set Study Duration")
@@ -89,11 +87,6 @@ struct TimerView: View {
                         .padding(.bottom)
                     }
                     .presentationDetents([.height(300)]) // Small pop-up height
-                }
-                
-                // Existing global sheet for CreateResourceView
-                .sheet(isPresented: $viewModel.showCreateSheet) {
-                    CreateResourceView().presentationDetents([.medium])
                 }
             }
         }

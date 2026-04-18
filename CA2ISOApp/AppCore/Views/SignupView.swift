@@ -31,6 +31,12 @@ struct SignupView: View {
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                         .padding(.top, 30)
+
+                    Text("Create your account to organize subjects, build flashcard decks, and keep your study streak going.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 34)
                     
                     // Email Field
                     HStack {
@@ -115,6 +121,7 @@ struct SignupView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
+        .enableSwipeBack()
         // This is what triggers the move to Home
         .navigationDestination(isPresented: $viewModel.isSignedUp) {
             SubjectPickerView()

@@ -10,6 +10,7 @@ import SwiftUI
 
 struct CreateFlashcardManualView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.dismiss) private var dismiss
     
     // 1. Interaction State
     @State private var selectedSubject = ""
@@ -17,6 +18,8 @@ struct CreateFlashcardManualView: View {
     @State private var flashcardTitle = ""
     @State private var question = ""
     @State private var answer = ""
+    @State private var errorMessage = ""
+    @State private var showErrorAlert = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -41,10 +44,14 @@ struct CreateFlashcardManualView: View {
                         
                        
                         Group {
-                            ManualInputField(label: "Subject", text: $selectedSubject, isPicker: true, subjects: viewModel.chosenSubjects)
+                            ManualInputField(label: "Subject", text: $selectedSubject, isPicker: true, subjects: viewModel.subjectOptions)
                             ManualInputField(label: "Topic", text: $topic)
-                            ManualInputField(label: "Title", text: $flashcardTitle)
+                            ManualInputField(label: "Deck Title", text: $flashcardTitle)
                         }
+
+                        Text("Create your first card here, then continue to the deck editor to add, remove, or reorder the rest.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
 
                         // Question and Answer
                         VStack(alignment: .leading, spacing: 8) {
@@ -61,10 +68,9 @@ struct CreateFlashcardManualView: View {
                         HStack {
                             Spacer()
                             Button(action: {
-                                print("Flashcard Created!")
-                                viewModel.activeNavigation = nil // Go back to Home after creation
+                                saveManualFlashcard()
                             }) {
-                                Text("Create")
+                                Text("Continue to Deck Builder")
                                     .fontWeight(.bold)
                                     .foregroundColor(Color.blue)
                                     .padding(.vertical, 12)
@@ -85,6 +91,53 @@ struct CreateFlashcardManualView: View {
             CustomNavBar(selectedTab: 1)
         }
         .navigationBarBackButtonHidden(true)
+        .enableSwipeBack()
+        .onAppear {
+            if selectedSubject.isEmpty {
+                selectedSubject = viewModel.defaultSubjectForCreation
+            }
+        }
+        .alert("Could not save flashcard", isPresented: $showErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
+    }
+
+    private func saveManualFlashcard() {
+        let resolvedSubject = selectedSubject.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedTopic = topic.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedTitle = flashcardTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedQuestion = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedAnswer = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !resolvedQuestion.isEmpty, !resolvedAnswer.isEmpty else {
+            errorMessage = "Please add both a question and an answer before building the deck."
+            showErrorAlert = true
+            return
+        }
+
+        let deckDraft = FlashcardDeckDraft(
+            title: resolvedTitle.isEmpty ? "Manual Flashcards" : resolvedTitle,
+            sourceType: "Manual Entry",
+            subject: resolvedSubject,
+            topic: resolvedTopic,
+            rawText: "\(resolvedQuestion)\n\(resolvedAnswer)",
+            cards: [
+                FlashcardDraft(
+                    question: resolvedQuestion,
+                    answer: resolvedAnswer,
+                    style: resolvedQuestion.lowercased().hasPrefix("what is") ? .definition : .summary
+                )
+            ]
+        )
+
+        viewModel.loadFlashcardDraft(deckDraft)
+        dismiss()
+
+        DispatchQueue.main.async {
+            viewModel.navPath.append(NavTarget.flashcardReview)
+        }
     }
 }
 

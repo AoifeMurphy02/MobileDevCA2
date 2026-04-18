@@ -1,138 +1,583 @@
 //
-//  Untitled.swift
+//  CreateFlashCardView.swift
 //  CA2ISOApp
 //
 //  Created by Aoife on 06/04/2026.
 //
 
 import Foundation
+import PhotosUI
+import SwiftData
 import SwiftUI
-
-import SwiftUI
+import UniformTypeIdentifiers
 
 struct CreateFlashCardView: View {
     @Environment(AppViewModel.self) private var viewModel
-    
+    @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
+
+    @State private var showScanImporter = false
+    @State private var showFileImporter = false
+    @State private var showPasteTextSheet = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var importErrorMessage = ""
+    @State private var showImportAlert = false
+    @State private var isImporting = false
+    @State private var importProgressMessage = "Analyzing your notes..."
+
     var body: some View {
         @Bindable var viewModel = viewModel
-        
+
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 15) {
-                    // Profile Image
-                    Circle()
-                        .fill(.gray.opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .foregroundColor(.white)
-                        )
-                        .clipShape(Circle())
-                    
-                    Text("Create Flashcards")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
-                    
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 20)
-               
-              
-                VStack(spacing: 20) {
-             
-                    FlashcardActionButton(icon: "camera", title: "Scan document") {
-                        print("Scan document tapped")
-                    }
-                    
-                    
-                    FlashcardActionButton(icon: "paperclip", title: "Select file") {
-                        print("Select file tapped")
-                    }
+                header
 
-                    
-                    FlashcardActionButton(icon: "textformat", title: "Create manually") {
-                        // This triggers the navigation to the manual entry screen
-                        viewModel.activeNavigation = .createFlashcardsManually
-                    }
-                    
-                    
-                    FlashcardActionButton(icon: "photo", title: "Select Image") {
-                        print("Select image tapped")
-                    }
-                }
-                .padding(.horizontal, 25)
-                .padding(.top, 40)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        introCard
+                        subjectContextCard
 
-                Spacer()
+                        if viewModel.hasFlashcardDraft {
+                            FlashcardResumeDraftCard(
+                                title: viewModel.flashcardDraftTitle,
+                                cardCount: viewModel.flashcardDraftCards.count
+                            ) {
+                                viewModel.navPath.append(NavTarget.flashcardReview)
+                            }
+                        }
+
+                        VStack(spacing: 16) {
+                            FlashcardActionButton(icon: "camera", title: "Scan document") {
+                                showScanImporter = true
+                            }
+
+                            FlashcardActionButton(icon: "paperclip", title: "Select file") {
+                                showFileImporter = true
+                            }
+
+                            FlashcardActionButton(icon: "doc.text", title: "Paste text") {
+                                showPasteTextSheet = true
+                            }
+
+                            FlashcardActionButton(icon: "square.and.pencil", title: "Create manually") {
+                                viewModel.navPath.append(NavTarget.createFlashcardsManually)
+                            }
+
+                            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                                FlashcardActionRow(icon: "photo", title: "Select image")
+                            }
+                        }
+
+                        if isImporting {
+                            ProgressView(importProgressMessage)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+
+                        savedSetsSection
+                            .padding(.bottom, 110)
+                    }
+                    .padding(.horizontal, 25)
+                    .padding(.top, 24)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(Color.white)
 
-            // NAV BAR
-            CustomNavBar(selectedTab: 1) // Plus tab is active
+            CustomNavBar(selectedTab: 1)
         }
         .navigationBarBackButtonHidden(true)
-        .navigationDestination(item: $viewModel.activeNavigation) { target in
-                    switch target {
-                    
-                    case .signup: SignupView()
-                    case .login: LoginView()
-                    case .home: HomeView()
-                    case .subjectPicker: SubjectPickerView()
-                    case .flashcards:
-                        CreateFlashCardView()
-                    case .studyGuide:
-                        CreateStudyGuideView()
-                    case .practiceTests:
-                        CreatePracticeTestView()
-                    case .timer:
-                        TimerView()
-                    case .createFlashcardsManually:
-                        CreateFlashcardManualView()
-                    }
+        .enableSwipeBack()
+        .sheet(isPresented: $showPasteTextSheet) {
+            PasteTextImportSheet { title, text in
+                Task {
+                    await importPastedText(title: title, text: text)
                 }
-        // This handles the pop-up if the user clicks +
-        .sheet(isPresented: $viewModel.showCreateSheet) {
-            CreateResourceView()
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
+            }
+        }
+        .fileImporter(
+            isPresented: $showScanImporter,
+            allowedContentTypes: [.pdf, .image],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImportedFile(result, useScannerLabel: true)
+        }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.plainText, .utf8PlainText, .pdf, .image],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImportedFile(result, useScannerLabel: false)
+        }
+        .onChange(of: selectedPhotoItem) { _, newValue in
+            guard let newValue else { return }
+
+            Task {
+                await importPhoto(newValue)
+                selectedPhotoItem = nil
+            }
+        }
+        .alert("Import Failed", isPresented: $showImportAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(importErrorMessage)
         }
     }
-}
 
-    struct FlashcardActionButton: View {
-        var icon: String
-        var title: String
-        var action: () -> Void // This is the instruction passed from above
-        
-        var body: some View {
-            // THE FIX: Call the 'action' closure here
-            Button(action: action) {
-                HStack(spacing: 15) {
-                    Image(systemName: icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .frame(width: 30) // Ensures icons line up
-                    
-                    Text(title)
-                        .font(.system(size: 18, weight: .bold))
-                    
-                    Spacer()
-                }
-                .foregroundColor(.black)
-                .padding(.vertical, 18)
-                .padding(.horizontal, 20)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
+    private var header: some View {
+        HStack(spacing: 15) {
+            Circle()
+                .fill(.gray.opacity(0.3))
+                .frame(width: 50, height: 50)
+                .overlay(
+                    Image(systemName: "person.fill")
+                        .foregroundColor(.white)
                 )
-                .background(Color.white)
-                .cornerRadius(12)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Create Flashcards")
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+
+                Text("AI-powered deck builder for your notes, files, and images.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal)
+        .padding(.top, 20)
+    }
+
+    private var introCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("On-device AI generation", systemImage: "sparkles")
+                    .font(.headline)
+                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+
+                Spacer()
+            }
+
+            Text("The app analyzes your notes, ranks the strongest concepts, suggests a subject and topic, and turns them into full question-and-answer flashcards before you review the deck.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(red: 0.94, green: 0.97, blue: 1.0))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    @ViewBuilder
+    private var subjectContextCard: some View {
+        if viewModel.subjectOptions.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("No subjects selected yet")
+                    .font(.headline)
+                Text("You can still create a deck now, and add subjects later to organize your library.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.blue.opacity(0.16), lineWidth: 1.2)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        } else {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Current subject")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.secondary)
+
+                Text(viewModel.defaultSubjectForCreation.isEmpty ? "All subjects" : viewModel.defaultSubjectForCreation)
+                    .font(.headline)
+                    .foregroundColor(.black)
+
+                Text("Your imported notes will be matched against your subjects and you can still change the suggestion in the review step.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.blue.opacity(0.16), lineWidth: 1.2)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+    }
+
+    @ViewBuilder
+    private var savedSetsSection: some View {
+        if flashcardSets.isEmpty {
+            ContentUnavailableView(
+                "No Flashcard Sets Yet",
+                systemImage: "square.stack.3d.up.slash",
+                description: Text("Create your first deck from a document, pasted notes, or a photo.")
+            )
+            .padding(.top, 12)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Saved Sets")
+                    .font(.headline)
+                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .padding(.top, 6)
+
+                ForEach(flashcardSets.prefix(8)) { flashcardSet in
+                    NavigationLink(destination: FlashcardSetDetailView(flashcardSet: flashcardSet)) {
+                        FlashcardSetCard(flashcardSet: flashcardSet)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }
 
+    private func handleImportedFile(_ result: Result<[URL], Error>, useScannerLabel: Bool) {
+        guard case .success(let urls) = result, let url = urls.first else {
+            if case .failure(let error) = result {
+                presentError(error.localizedDescription)
+            }
+            return
+        }
+
+        Task {
+            await importFile(url, useScannerLabel: useScannerLabel)
+        }
+    }
+
+    @MainActor
+    private func importFile(_ url: URL, useScannerLabel: Bool) async {
+        do {
+            setImportState(isLoading: true, message: "Reading your file...")
+            let availableSubjects = viewModel.subjectOptions
+            let preferredSubject = viewModel.defaultSubjectForCreation
+
+            let importedContent = try await Task.detached(priority: .userInitiated) {
+                if useScannerLabel {
+                    return try await FlashcardImportService.importScannedDocument(from: url)
+                } else {
+                    return try await FlashcardImportService.importFile(from: url)
+                }
+            }.value
+
+            setImportState(isLoading: true, message: "Building study-ready flashcards...")
+            let draftDeck = try await Task.detached(priority: .userInitiated) {
+                try FlashcardImportService.buildDraftDeck(
+                    title: importedContent.title,
+                    subject: "",
+                    topic: "",
+                    sourceType: importedContent.sourceType,
+                    text: importedContent.text,
+                    availableSubjects: availableSubjects,
+                    preferredSubject: preferredSubject
+                )
+            }.value
+
+            viewModel.loadFlashcardDraft(draftDeck)
+            importErrorMessage = ""
+            isImporting = false
+            viewModel.navPath.append(NavTarget.flashcardReview)
+        } catch {
+            isImporting = false
+            presentError(error.localizedDescription)
+        }
+    }
+
+    private func importPhoto(_ item: PhotosPickerItem) async {
+        do {
+            await MainActor.run {
+                setImportState(isLoading: true, message: "Reading text from your image...")
+            }
+
+            let importedContent = try await FlashcardImportService.importPhoto(from: item)
+            let availableSubjects = await MainActor.run { viewModel.subjectOptions }
+            let preferredSubject = await MainActor.run { viewModel.defaultSubjectForCreation }
+
+            await MainActor.run {
+                setImportState(isLoading: true, message: "Creating smart flashcards...")
+            }
+
+            let draftDeck = try await Task.detached(priority: .userInitiated) {
+                try FlashcardImportService.buildDraftDeck(
+                    title: importedContent.title,
+                    subject: "",
+                    topic: "",
+                    sourceType: importedContent.sourceType,
+                    text: importedContent.text,
+                    availableSubjects: availableSubjects,
+                    preferredSubject: preferredSubject
+                )
+            }.value
+
+            await MainActor.run {
+                viewModel.loadFlashcardDraft(draftDeck)
+                importErrorMessage = ""
+                isImporting = false
+                viewModel.navPath.append(NavTarget.flashcardReview)
+            }
+        } catch {
+            await MainActor.run {
+                isImporting = false
+                presentError(error.localizedDescription)
+            }
+        }
+    }
+
+    private func importPastedText(title: String, text: String) async {
+        do {
+            let resolvedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Pasted Notes" : title
+            let availableSubjects = await MainActor.run { viewModel.subjectOptions }
+            let preferredSubject = await MainActor.run { viewModel.defaultSubjectForCreation }
+
+            await MainActor.run {
+                setImportState(isLoading: true, message: "Analyzing your pasted notes...")
+            }
+
+            let draftDeck = try await Task.detached(priority: .userInitiated) {
+                try FlashcardImportService.buildDraftDeck(
+                    title: resolvedTitle,
+                    subject: "",
+                    topic: "",
+                    sourceType: "Pasted Notes",
+                    text: text,
+                    availableSubjects: availableSubjects,
+                    preferredSubject: preferredSubject
+                )
+            }.value
+
+            await MainActor.run {
+                viewModel.loadFlashcardDraft(draftDeck)
+                importErrorMessage = ""
+                isImporting = false
+                viewModel.navPath.append(NavTarget.flashcardReview)
+            }
+        } catch {
+            await MainActor.run {
+                isImporting = false
+                presentError(error.localizedDescription)
+            }
+        }
+    }
+
+    @MainActor
+    private func setImportState(isLoading: Bool, message: String) {
+        isImporting = isLoading
+        importProgressMessage = message
+    }
+
+    @MainActor
+    private func presentError(_ message: String) {
+        importErrorMessage = message
+        showImportAlert = true
+    }
+}
+
+struct FlashcardSetCard: View {
+    let flashcardSet: FlashcardSet
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.blue.opacity(0.12))
+                    .frame(width: 54, height: 54)
+
+                Image(systemName: "square.stack.3d.up.fill")
+                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(flashcardSet.title)
+                    .font(.headline)
+                    .foregroundColor(.black)
+                    .multilineTextAlignment(.leading)
+
+                Text("\(flashcardSet.cards.count) cards")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Text(setSubtitle)
+                    .font(.caption)
+                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+                .padding(.top, 6)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(Color.white)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.blue.opacity(0.18), lineWidth: 1.5)
+        )
+        .cornerRadius(16)
+    }
+
+    private var setSubtitle: String {
+        [flashcardSet.subject, flashcardSet.sourceType]
+            .filter { !$0.isEmpty }
+            .joined(separator: " • ")
+    }
+}
+
+struct FlashcardResumeDraftCard: View {
+    let title: String
+    let cardCount: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Continue Editing")
+                        .font(.headline)
+                        .foregroundColor(.black)
+
+                    Text("\(resolvedTitle) • \(cardCount) draft cards")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.title3)
+                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(Color(red: 0.97, green: 0.99, blue: 1.0))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.blue.opacity(0.25), lineWidth: 1.2)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var resolvedTitle: String {
+        title.isEmpty ? "Untitled Deck" : title
+    }
+}
+
+struct FlashcardActionButton: View {
+    var icon: String
+    var title: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            FlashcardActionRow(icon: icon, title: title)
+        }
+    }
+}
+
+struct FlashcardActionRow: View {
+    var icon: String
+    var title: String
+
+    var body: some View {
+        HStack(spacing: 15) {
+            Image(systemName: icon)
+                .font(.system(size: 22, weight: .semibold))
+                .frame(width: 30)
+
+            Text(title)
+                .font(.system(size: 18, weight: .bold))
+
+            Spacer()
+        }
+        .foregroundColor(.black)
+        .padding(.vertical, 18)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
+        )
+        .background(Color.white)
+        .cornerRadius(12)
+    }
+}
+
+private struct PasteTextImportSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var title = ""
+    @State private var pastedText = ""
+
+    let onGenerate: (String, String) -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Paste your notes, summary, or study guide here. The app will turn them into editable flashcards.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Deck Title")
+                        .font(.headline)
+                    TextField("For example: Climate Action Notes", text: $title)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Notes")
+                        .font(.headline)
+
+                    TextEditor(text: $pastedText)
+                        .frame(minHeight: 220)
+                        .padding(10)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.blue.opacity(0.25), lineWidth: 1.2)
+                        )
+                }
+
+                Spacer()
+
+                Button {
+                    onGenerate(title, pastedText)
+                    dismiss()
+                } label: {
+                    Text("Generate Flashcards")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color(red: 0.25, green: 0.53, blue: 0.94))
+                        .clipShape(Capsule())
+                }
+                .disabled(pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .opacity(pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.5 : 1)
+            }
+            .padding(24)
+            .navigationTitle("Paste Text")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+}
 
 #Preview {
     NavigationStack {
