@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 struct CustomNavBar: View {
     // This tells the bar which tab is currently selected
@@ -16,54 +17,52 @@ struct CustomNavBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Divider().opacity(0.1) 
-            
+            Divider().opacity(0.1)
+
             HStack {
                 Spacer()
-                
+
                 Button(action: {
+                    viewModel.showCreateSheet = false
+
+                    guard selectedTab != 0 else { return }
                     viewModel.navPath = NavigationPath()
-                                        viewModel.navPath.append(NavTarget.home)
-                                        viewModel.showCreateSheet = false
-                    
+                    viewModel.navPath.append(NavTarget.home)
                 }) {
-                    
                     NavBarIcon(iconName: "house", isSelected: selectedTab == 0)
                 }
-                
-                
+
                 Spacer()
-                
+
                 // add
                 Button(action: {
-                                    // This triggers the pop-up sheet on the HomeView
-                                    viewModel.showCreateSheet = true
-                                }) {
-                                    ZStack {
-                                        // Shows the blue circle if we are currently on the "Add" state
-                                        if selectedTab == 1 {
-                                            Circle()
-                                                .fill(Color.blue.opacity(0.3))
-                                                .frame(width: 50, height: 50)
-                                        }
-                                        
-                                        Image(systemName: "plus")
-                                            .font(.title2)
-                                            .foregroundColor(.black)
-                                    }
-                                }
-                
+                    viewModel.showCreateSheet = true
+                }) {
+                    ZStack {
+                        if selectedTab == 1 {
+                            Circle()
+                                .fill(Color.blue.opacity(0.3))
+                                .frame(width: 50, height: 50)
+                        }
+
+                        Image(systemName: "plus")
+                            .font(.title2)
+                            .foregroundColor(.black)
+                    }
+                }
+
                 Spacer()
-                
+
                 // clock
-                
                 Button(action: {
-                    viewModel.navPath.append(NavTarget.timer)
                     viewModel.showCreateSheet = false
+
+                    guard selectedTab != 2 else { return }
+                    viewModel.navPath.append(NavTarget.timer)
                 }) {
                     NavBarIcon(iconName: "clock", isSelected: selectedTab == 2)
                 }
-                
+
                 Spacer()
             }
             .frame(height: 60)
@@ -92,5 +91,34 @@ struct NavBarIcon: View {
                 .fontWeight(isSelected ? .bold : .regular)
                 .foregroundColor(.black)
         }
+    }
+}
+
+private struct SwipeBackEnabler: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> SwipeBackHostingController {
+        SwipeBackHostingController()
+    }
+
+    func updateUIViewController(_ uiViewController: SwipeBackHostingController, context: Context) {
+        uiViewController.enableSwipeBackIfPossible()
+    }
+}
+
+private final class SwipeBackHostingController: UIViewController {
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        enableSwipeBackIfPossible()
+    }
+
+    func enableSwipeBackIfPossible() {
+        guard let navigationController else { return }
+        navigationController.interactivePopGestureRecognizer?.isEnabled = true
+        navigationController.interactivePopGestureRecognizer?.delegate = nil
+    }
+}
+
+extension View {
+    func enableSwipeBack() -> some View {
+        background(SwipeBackEnabler().frame(width: 0, height: 0))
     }
 }
