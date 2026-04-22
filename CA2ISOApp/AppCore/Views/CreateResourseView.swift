@@ -6,10 +6,10 @@ struct CreateResourceView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottom) {
-                Color.black.opacity(0.08)
-                    .ignoresSafeArea()
+        //GeometryReader { geometry in
+          //  ZStack(alignment: .bottom) {
+            //    Color.black.opacity(0.08)
+              //      .ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     Capsule()
@@ -84,14 +84,14 @@ struct CreateResourceView: View {
 
                     Spacer()
                 }
-                .frame(maxWidth: .infinity, maxHeight: min(geometry.size.height * 0.62, 470))
+              // .frame(maxWidth: .infinity, maxHeight: min(geometry.size.height * 0.62, 470))
                 .background(Color.white)
-                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
+               // .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
         }
-        .ignoresSafeArea(edges: .bottom)
-    }
-}
+     //   .ignoresSafeArea(edges: .bottom)
+  //  }
+//}
 
 struct ResourceActionButton: View {
     var title: String
