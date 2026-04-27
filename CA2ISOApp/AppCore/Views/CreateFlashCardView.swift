@@ -18,6 +18,7 @@ struct CreateFlashCardView: View {
     @State private var showScanImporter = false
     @State private var showFileImporter = false
     @State private var showPasteTextSheet = false
+    @State private var showAISettings = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var importErrorMessage = ""
     @State private var showImportAlert = false
@@ -94,6 +95,9 @@ struct CreateFlashCardView: View {
                 }
             }
         }
+        .sheet(isPresented: $showAISettings) {
+            FlashcardAISettingsView()
+        }
         .fileImporter(
             isPresented: $showScanImporter,
             allowedContentTypes: [.pdf, .image],
@@ -139,12 +143,23 @@ struct CreateFlashCardView: View {
                     .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
 
-                Text("AI-powered deck builder for your notes, files, and images.")
+                Text(headerSubtitle)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
 
             Spacer()
+
+            Button {
+                showAISettings = true
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.headline)
+                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .padding(12)
+                    .background(Color(red: 0.94, green: 0.97, blue: 1.0))
+                    .clipShape(Circle())
+            }
         }
         .padding(.horizontal)
         .padding(.top, 20)
@@ -153,16 +168,20 @@ struct CreateFlashCardView: View {
     private var introCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("On-device AI generation", systemImage: "sparkles")
+                Label(introTitle, systemImage: "sparkles")
                     .font(.headline)
                     .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
 
                 Spacer()
             }
 
-            Text("The app analyzes your notes, ranks the strongest concepts, suggests a subject and topic, and turns them into full question-and-answer flashcards before you review the deck.")
+            Text(introDescription)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+
+            Text(aiStatusLine)
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(usesCloudAI ? .green : .secondary)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -198,7 +217,7 @@ struct CreateFlashCardView: View {
                     .font(.headline)
                     .foregroundColor(.black)
 
-                Text("Your imported notes will be matched against your subjects and you can still change the suggestion in the review step.")
+                Text("Imported notes will be matched against your subjects and you can still change the suggestion in the review step.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -267,9 +286,9 @@ struct CreateFlashCardView: View {
                 }
             }.value
 
-            setImportState(isLoading: true, message: "Building study-ready flashcards...")
-            let draftDeck = try await Task.detached(priority: .userInitiated) {
-                try FlashcardImportService.buildDraftDeck(
+            setImportState(isLoading: true, message: activeDeckBuildMessage)
+            let draftDeck: FlashcardDeckDraft = try await Task.detached(priority: .userInitiated) {
+                try await FlashcardImportService.buildDraftDeck(
                     title: importedContent.title,
                     subject: "",
                     topic: "",
@@ -296,16 +315,20 @@ struct CreateFlashCardView: View {
                 setImportState(isLoading: true, message: "Reading text from your image...")
             }
 
-            let importedContent = try await FlashcardImportService.importPhoto(from: item)
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                throw FlashcardImportError.imageLoadFailed
+            }
+
+            let importedContent = try await FlashcardImportService.importImageData(data)
             let availableSubjects = await MainActor.run { viewModel.subjectOptions }
             let preferredSubject = await MainActor.run { viewModel.defaultSubjectForCreation }
 
             await MainActor.run {
-                setImportState(isLoading: true, message: "Creating smart flashcards...")
+                setImportState(isLoading: true, message: activeImageBuildMessage)
             }
 
-            let draftDeck = try await Task.detached(priority: .userInitiated) {
-                try FlashcardImportService.buildDraftDeck(
+            let draftDeck: FlashcardDeckDraft = try await Task.detached(priority: .userInitiated) {
+                try await FlashcardImportService.buildDraftDeck(
                     title: importedContent.title,
                     subject: "",
                     topic: "",
@@ -337,11 +360,11 @@ struct CreateFlashCardView: View {
             let preferredSubject = await MainActor.run { viewModel.defaultSubjectForCreation }
 
             await MainActor.run {
-                setImportState(isLoading: true, message: "Analyzing your pasted notes...")
+                setImportState(isLoading: true, message: activePastedTextMessage)
             }
 
-            let draftDeck = try await Task.detached(priority: .userInitiated) {
-                try FlashcardImportService.buildDraftDeck(
+            let draftDeck: FlashcardDeckDraft = try await Task.detached(priority: .userInitiated) {
+                try await FlashcardImportService.buildDraftDeck(
                     title: resolvedTitle,
                     subject: "",
                     topic: "",
@@ -376,6 +399,94 @@ struct CreateFlashCardView: View {
     private func presentError(_ message: String) {
         importErrorMessage = message
         showImportAlert = true
+    }
+
+    private var usesCloudAI: Bool {
+        activeAIMode != .local && FlashcardAISettingsStore.isCloudReady()
+    }
+
+    private var activeAIMode: FlashcardAIMode {
+        FlashcardAISettingsStore.currentMode()
+    }
+
+    private var headerSubtitle: String {
+        switch activeAIMode {
+        case .local:
+            return "Stronger on-device AI for notes, files, scans, and images."
+        case .appleIntelligence:
+            return "Grounded flashcards with Apple Intelligence on device."
+        case .openAI:
+            return "Grounded AI plus OpenAI for files, scans, images, and pasted notes."
+        }
+    }
+
+    private var introTitle: String {
+        switch activeAIMode {
+        case .local:
+            return "Smarter flashcard generation"
+        case .appleIntelligence, .openAI:
+            return "Hybrid AI flashcard generation"
+        }
+    }
+
+    private var introDescription: String {
+        switch activeAIMode {
+        case .local:
+            return "The app filters weak source text, ranks stronger concepts, suggests a subject and topic, and turns your material into cleaner question-and-answer flashcards before you review the deck."
+        case .appleIntelligence:
+            return "The app grounds itself in your source text first, then uses Apple Intelligence on device to improve card quality, coverage, and phrasing while keeping the local fallback."
+        case .openAI:
+            return "The app now grounds itself in your source text first, then uses OpenAI to improve question quality, card coverage, and follow-up chat support without dropping the local fallback."
+        }
+    }
+
+    private var aiStatusLine: String {
+        FlashcardAISettingsStore.statusText()
+    }
+
+    private var activeDeckBuildMessage: String {
+        guard usesCloudAI else {
+            return "Building stronger study flashcards..."
+        }
+
+        switch activeAIMode {
+        case .local:
+            return "Building stronger study flashcards..."
+        case .appleIntelligence:
+            return "Building flashcards with Apple Intelligence..."
+        case .openAI:
+            return "Building grounded AI flashcards..."
+        }
+    }
+
+    private var activeImageBuildMessage: String {
+        guard usesCloudAI else {
+            return "Creating stronger flashcards..."
+        }
+
+        switch activeAIMode {
+        case .local:
+            return "Creating stronger flashcards..."
+        case .appleIntelligence:
+            return "Creating flashcards with Apple Intelligence..."
+        case .openAI:
+            return "Creating grounded AI flashcards..."
+        }
+    }
+
+    private var activePastedTextMessage: String {
+        guard usesCloudAI else {
+            return "Analyzing your pasted notes..."
+        }
+
+        switch activeAIMode {
+        case .local:
+            return "Analyzing your pasted notes..."
+        case .appleIntelligence:
+            return "Turning your notes into an Apple Intelligence deck..."
+        case .openAI:
+            return "Turning your notes into a grounded AI deck..."
+        }
     }
 }
 
