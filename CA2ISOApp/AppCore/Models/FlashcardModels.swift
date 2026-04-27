@@ -8,6 +8,45 @@
 import Foundation
 import SwiftData
 
+enum FlashcardConfidence: String, CaseIterable, Hashable, Codable, Sendable {
+    case low
+    case medium
+    case high
+
+    nonisolated var title: String {
+        switch self {
+        case .low:
+            return "Low Confidence"
+        case .medium:
+            return "Medium Confidence"
+        case .high:
+            return "High Confidence"
+        }
+    }
+
+    nonisolated var shortTitle: String {
+        switch self {
+        case .low:
+            return "Low"
+        case .medium:
+            return "Medium"
+        case .high:
+            return "High"
+        }
+    }
+
+    nonisolated var rank: Int {
+        switch self {
+        case .low:
+            return 1
+        case .medium:
+            return 2
+        case .high:
+            return 3
+        }
+    }
+}
+
 @Model
 final class FlashcardSet {
     var title: String
@@ -15,6 +54,8 @@ final class FlashcardSet {
     var subject: String
     var topic: String
     var rawText: String
+    var aiGenerationMode: String
+    var aiModelID: String
     var createdAt: Date
 
     @Relationship(deleteRule: .cascade, inverse: \Flashcard.parentSet)
@@ -26,6 +67,8 @@ final class FlashcardSet {
         subject: String = "",
         topic: String = "",
         rawText: String,
+        aiGenerationMode: String = "",
+        aiModelID: String = "",
         createdAt: Date = .now
     ) {
         self.title = title
@@ -33,6 +76,8 @@ final class FlashcardSet {
         self.subject = subject
         self.topic = topic
         self.rawText = rawText
+        self.aiGenerationMode = aiGenerationMode
+        self.aiModelID = aiModelID
         self.createdAt = createdAt
     }
 }
@@ -41,19 +86,30 @@ final class FlashcardSet {
 final class Flashcard {
     var question: String
     var answer: String
+    var confidenceRawValue: String
+    var evidenceExcerpt: String
     var orderIndex: Int
     var isStarred: Bool
     var parentSet: FlashcardSet?
 
+    var confidence: FlashcardConfidence {
+        get { FlashcardConfidence(rawValue: confidenceRawValue) ?? .medium }
+        set { confidenceRawValue = newValue.rawValue }
+    }
+
     init(
         question: String,
         answer: String,
+        confidenceRawValue: String = FlashcardConfidence.medium.rawValue,
+        evidenceExcerpt: String = "",
         orderIndex: Int,
         isStarred: Bool = false,
         parentSet: FlashcardSet? = nil
     ) {
         self.question = question
         self.answer = answer
+        self.confidenceRawValue = confidenceRawValue
+        self.evidenceExcerpt = evidenceExcerpt
         self.orderIndex = orderIndex
         self.isStarred = isStarred
         self.parentSet = parentSet
@@ -68,7 +124,7 @@ enum FlashcardPromptStyle: String, CaseIterable, Hashable, Codable, Sendable {
     case compare
     case summary
 
-    var title: String {
+    nonisolated var title: String {
         switch self {
         case .definition:
             return "Definition"
@@ -85,7 +141,7 @@ enum FlashcardPromptStyle: String, CaseIterable, Hashable, Codable, Sendable {
         }
     }
 
-    var iconName: String {
+    nonisolated var iconName: String {
         switch self {
         case .definition:
             return "text.book.closed"
@@ -108,17 +164,23 @@ struct FlashcardDraft: Sendable {
     var question: String
     var answer: String
     var style: FlashcardPromptStyle
+    var confidence: FlashcardConfidence
+    var evidenceExcerpt: String
 
     nonisolated init(
         id: UUID = UUID(),
         question: String,
         answer: String,
-        style: FlashcardPromptStyle = .summary
+        style: FlashcardPromptStyle = .summary,
+        confidence: FlashcardConfidence = .medium,
+        evidenceExcerpt: String = ""
     ) {
         self.id = id
         self.question = question
         self.answer = answer
         self.style = style
+        self.confidence = confidence
+        self.evidenceExcerpt = evidenceExcerpt
     }
 }
 
@@ -130,6 +192,8 @@ struct FlashcardDeckDraft: Sendable {
     var subject: String
     var topic: String
     var rawText: String
+    var aiGenerationMode: String
+    var aiModelID: String
     var cards: [FlashcardDraft]
 
     nonisolated init(
@@ -138,6 +202,8 @@ struct FlashcardDeckDraft: Sendable {
         subject: String,
         topic: String,
         rawText: String,
+        aiGenerationMode: String = "",
+        aiModelID: String = "",
         cards: [FlashcardDraft]
     ) {
         self.title = title
@@ -145,6 +211,8 @@ struct FlashcardDeckDraft: Sendable {
         self.subject = subject
         self.topic = topic
         self.rawText = rawText
+        self.aiGenerationMode = aiGenerationMode
+        self.aiModelID = aiModelID
         self.cards = cards
     }
 }
