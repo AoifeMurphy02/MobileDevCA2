@@ -54,6 +54,8 @@ class AppViewModel {
     var flashcardDraftSubject = ""
     var flashcardDraftTopic = ""
     var flashcardDraftRawText = ""
+    var flashcardDraftAIGenerationMode = ""
+    var flashcardDraftAIModelID = ""
     var flashcardDraftCards: [FlashcardDraft] = []
     
     var pendingNavigation: NavTarget? = nil
@@ -191,6 +193,8 @@ class AppViewModel {
         flashcardDraftSubject = draft.subject.isEmpty ? defaultSubjectForCreation : draft.subject
         flashcardDraftTopic = draft.topic
         flashcardDraftRawText = draft.rawText
+        flashcardDraftAIGenerationMode = draft.aiGenerationMode
+        flashcardDraftAIModelID = draft.aiModelID
         flashcardDraftCards = draft.cards
     }
 
@@ -200,6 +204,8 @@ class AppViewModel {
         flashcardDraftSubject = ""
         flashcardDraftTopic = ""
         flashcardDraftRawText = ""
+        flashcardDraftAIGenerationMode = ""
+        flashcardDraftAIModelID = ""
         flashcardDraftCards = []
     }
 
