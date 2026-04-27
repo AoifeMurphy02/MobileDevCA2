@@ -39,6 +39,7 @@ struct FlashcardSetDetailView: View {
     @State private var sessionComplete = false
     @State private var masteredCardIDs: Set<PersistentIdentifier> = []
     @State private var reviewCardIDs: Set<PersistentIdentifier> = []
+    @State private var showAssistantSheet = false
 
     private var orderedCards: [Flashcard] {
         flashcardSet.cards.sorted(by: { $0.orderIndex < $1.orderIndex })
@@ -140,6 +141,10 @@ struct FlashcardSetDetailView: View {
                         }
                         .padding(.horizontal, 24)
                         .padding(.top, 10)
+
+                        FlashcardCardInsightPanel(card: currentCard)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 4)
                     } else {
                         Button {
                             revealAnswer()
@@ -162,6 +167,8 @@ struct FlashcardSetDetailView: View {
                         title: flashcardSet.title,
                         subject: flashcardSet.subject,
                         sourceType: flashcardSet.sourceType,
+                        aiGenerationMode: flashcardSet.aiGenerationMode,
+                        aiModelID: flashcardSet.aiModelID,
                         masteredCount: masteredCardIDs.count,
                         reviewCount: reviewCardIDs.count
                     )
@@ -184,7 +191,18 @@ struct FlashcardSetDetailView: View {
             guard studyCardIDs.isEmpty else { return }
             startRound(.all, resetProgress: true)
         }
+        .sheet(isPresented: $showAssistantSheet) {
+            FlashcardDeckAssistantView(flashcardSet: flashcardSet)
+        }
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showAssistantSheet = true
+                } label: {
+                    Image(systemName: "sparkles.rectangle.stack")
+                }
+            }
+
             ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .destructive) {
                     modelContext.delete(flashcardSet)
@@ -376,6 +394,8 @@ private struct FlashcardStudySummary: View {
     let title: String
     let subject: String
     let sourceType: String
+    let aiGenerationMode: String
+    let aiModelID: String
     let masteredCount: Int
     let reviewCount: Int
 
@@ -393,6 +413,24 @@ private struct FlashcardStudySummary: View {
                 SummaryPill(title: "\(masteredCount) got it", tint: Color(red: 0.45, green: 0.81, blue: 0.49))
                 SummaryPill(title: "\(reviewCount) review", tint: Color(red: 0.98, green: 0.48, blue: 0.43))
             }
+
+            if !aiGenerationMode.isEmpty || !aiModelID.isEmpty {
+                HStack(spacing: 12) {
+                    if !aiGenerationMode.isEmpty {
+                        SummaryPill(
+                            title: FlashcardAISettingsStore.title(forGenerationMode: aiGenerationMode),
+                            tint: Color(red: 0.87, green: 0.49, blue: 0.16)
+                        )
+                    }
+
+                    if !aiModelID.isEmpty {
+                        SummaryPill(
+                            title: aiModelID,
+                            tint: Color(red: 0.41, green: 0.37, blue: 0.86)
+                        )
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -401,6 +439,49 @@ private struct FlashcardStudySummary: View {
         [subject, sourceType]
             .filter { !$0.isEmpty }
             .joined(separator: " • ")
+    }
+}
+
+private struct FlashcardCardInsightPanel: View {
+    let card: Flashcard
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                SummaryPill(title: card.confidence.title, tint: confidenceTint)
+
+                if !card.evidenceExcerpt.isEmpty {
+                    SummaryPill(title: "Grounded in source", tint: Color(red: 0.25, green: 0.53, blue: 0.94))
+                }
+            }
+
+            if !card.evidenceExcerpt.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Why this answer")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.secondary)
+
+                    Text(card.evidenceExcerpt)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(red: 0.98, green: 0.99, blue: 1.0))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+    }
+
+    private var confidenceTint: Color {
+        switch card.confidence {
+        case .high:
+            return Color(red: 0.18, green: 0.63, blue: 0.35)
+        case .medium:
+            return Color(red: 0.91, green: 0.57, blue: 0.13)
+        case .low:
+            return Color(red: 0.86, green: 0.27, blue: 0.24)
+        }
     }
 }
 
