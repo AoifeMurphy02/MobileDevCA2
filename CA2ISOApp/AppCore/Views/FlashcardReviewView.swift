@@ -69,6 +69,20 @@ struct FlashcardReviewView: View {
                     title: viewModel.flashcardDraftSourceType.isEmpty ? "Smart Generation" : viewModel.flashcardDraftSourceType,
                     tint: Color(red: 0.0, green: 0.63, blue: 0.55)
                 )
+
+                if !viewModel.flashcardDraftAIGenerationMode.isEmpty {
+                    ReviewStatPill(
+                        title: FlashcardAISettingsStore.title(forGenerationMode: viewModel.flashcardDraftAIGenerationMode),
+                        tint: Color(red: 0.87, green: 0.49, blue: 0.16)
+                    )
+                }
+            }
+
+            if !viewModel.flashcardDraftAIModelID.isEmpty {
+                ReviewStatPill(
+                    title: viewModel.flashcardDraftAIModelID,
+                    tint: Color(red: 0.41, green: 0.37, blue: 0.86)
+                )
             }
         }
         .padding(18)
@@ -167,22 +181,25 @@ struct FlashcardReviewView: View {
                 .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
-                ForEach(self.viewModel.flashcardDraftCards.indices, id: \.self) { index in
-                    FlashcardEditorCard(
-                        index: index,
-                        card: $viewModel.flashcardDraftCards[index],
-                        canMoveUp: index > 0,
-                        canMoveDown: index < self.viewModel.flashcardDraftCards.count - 1,
-                        moveUp: {
-                            moveCard(from: index, to: index - 1)
-                        },
-                        moveDown: {
-                            moveCard(from: index, to: index + 1)
-                        },
-                        deleteAction: {
-                            self.viewModel.flashcardDraftCards.remove(at: index)
-                        }
-                    )
+                ForEach(Array(self.viewModel.flashcardDraftCards.enumerated()), id: \.element.id) { displayIndex, card in
+                    if let cardBinding = bindingForCard(id: card.id),
+                       let currentIndex = indexOfCard(with: card.id) {
+                        FlashcardEditorCard(
+                            index: displayIndex,
+                            card: cardBinding,
+                            canMoveUp: currentIndex > 0,
+                            canMoveDown: currentIndex < self.viewModel.flashcardDraftCards.count - 1,
+                            moveUp: {
+                                moveCard(for: card.id, offset: -1)
+                            },
+                            moveDown: {
+                                moveCard(for: card.id, offset: 1)
+                            },
+                            deleteAction: {
+                                deleteCard(with: card.id)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -218,6 +235,35 @@ struct FlashcardReviewView: View {
         }
     }
 
+    private func bindingForCard(id: UUID) -> Binding<FlashcardDraft>? {
+        guard let index = indexOfCard(with: id) else { return nil }
+
+        return Binding(
+            get: {
+                self.viewModel.flashcardDraftCards[index]
+            },
+            set: { updatedCard in
+                guard let currentIndex = indexOfCard(with: id) else { return }
+                self.viewModel.flashcardDraftCards[currentIndex] = updatedCard
+            }
+        )
+    }
+
+    private func indexOfCard(with id: UUID) -> Int? {
+        self.viewModel.flashcardDraftCards.firstIndex(where: { $0.id == id })
+    }
+
+    private func moveCard(for id: UUID, offset: Int) {
+        guard let currentIndex = indexOfCard(with: id) else { return }
+        let newIndex = currentIndex + offset
+        moveCard(from: currentIndex, to: newIndex)
+    }
+
+    private func deleteCard(with id: UUID) {
+        guard let index = indexOfCard(with: id) else { return }
+        self.viewModel.flashcardDraftCards.remove(at: index)
+    }
+
     private func moveCard(from currentIndex: Int, to newIndex: Int) {
         guard self.viewModel.flashcardDraftCards.indices.contains(currentIndex),
               self.viewModel.flashcardDraftCards.indices.contains(newIndex) else {
@@ -235,6 +281,8 @@ struct FlashcardReviewView: View {
             subject: viewModel.flashcardDraftSubject,
             topic: viewModel.flashcardDraftTopic,
             rawText: viewModel.flashcardDraftRawText,
+            aiGenerationMode: viewModel.flashcardDraftAIGenerationMode,
+            aiModelID: viewModel.flashcardDraftAIModelID,
             cards: viewModel.flashcardDraftCards
         )
 
@@ -272,13 +320,17 @@ private struct FlashcardEditorCard: View {
                     Text("Card \(index + 1)")
                         .font(.headline)
 
-                    Label(card.style.title, systemImage: card.style.iconName)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(Color(red: 0.25, green: 0.53, blue: 0.94))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color(red: 0.94, green: 0.97, blue: 1.0))
-                        .clipShape(Capsule())
+                    HStack(spacing: 8) {
+                        Label(card.style.title, systemImage: card.style.iconName)
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(Color(red: 0.25, green: 0.53, blue: 0.94))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color(red: 0.94, green: 0.97, blue: 1.0))
+                            .clipShape(Capsule())
+
+                        ConfidencePill(confidence: card.confidence)
+                    }
                 }
 
                 Spacer()
@@ -314,6 +366,21 @@ private struct FlashcardEditorCard: View {
                 Text("Answer")
                     .font(.subheadline.weight(.semibold))
                 EditorTextBox(text: $card.answer, minHeight: 140)
+            }
+
+            if !card.evidenceExcerpt.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Source Evidence")
+                        .font(.subheadline.weight(.semibold))
+
+                    Text(card.evidenceExcerpt)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(red: 0.98, green: 0.99, blue: 1.0))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
             }
         }
         .padding(18)
@@ -352,5 +419,30 @@ private struct ReviewStatPill: View {
             .padding(.vertical, 8)
             .background(tint.opacity(0.12))
             .clipShape(Capsule())
+    }
+}
+
+private struct ConfidencePill: View {
+    let confidence: FlashcardConfidence
+
+    var body: some View {
+        Text(confidence.shortTitle)
+            .font(.caption.weight(.semibold))
+            .foregroundColor(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(tint.opacity(0.14))
+            .clipShape(Capsule())
+    }
+
+    private var tint: Color {
+        switch confidence {
+        case .high:
+            return Color(red: 0.18, green: 0.63, blue: 0.35)
+        case .medium:
+            return Color(red: 0.91, green: 0.57, blue: 0.13)
+        case .low:
+            return Color(red: 0.86, green: 0.27, blue: 0.24)
+        }
     }
 }
