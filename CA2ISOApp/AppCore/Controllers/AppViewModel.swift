@@ -10,6 +10,7 @@ import SwiftData
 import UserNotifications
 import SwiftUI
 import AuthenticationServices
+import GoogleSignIn
 
 
 // Define the possible screens for navigation
@@ -285,4 +286,43 @@ class AppViewModel {
                 self.loginError = "Sign in with Apple failed."
             }
         }
+    
+    func configureGoogleSignIn() {
+        let config = GIDConfiguration(clientID: "246535979151-p94puseklqtr84m06go44e96bf354go8.apps.googleusercontent.com")
+        GIDSignIn.sharedInstance.configuration = config
+    }
+    
+    func handleGoogleSignIn(modelContext: ModelContext) {
+        // Find the active window scene to get the root view controller
+        let scenes = UIApplication.shared.connectedScenes
+        let windowScene = scenes.first as? UIWindowScene
+        let window = windowScene?.windows.first { $0.isKeyWindow }
+        
+        guard let rootVC = window?.rootViewController else {
+            print("DEBUG: Could not find root view controller")
+            return
+        }
+        
+        // 2. Start the Google Sign In
+        GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { result, error in
+            if let error = error {
+                print("Google Login Error: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let user = result?.user else { return }
+            
+            let email = user.profile?.email ?? ""
+            let name = user.profile?.name ?? "Student"
+            
+            self.currentUserEmail = email
+            
+            let newUser = User(email: email, googleUserID: user.userID)
+            modelContext.insert(newUser)
+            
+            DispatchQueue.main.async {
+                self.isLoggedIn = true
+            }
+        }
+    }
 }

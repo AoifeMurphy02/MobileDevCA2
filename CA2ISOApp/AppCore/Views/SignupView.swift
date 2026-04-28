@@ -98,7 +98,15 @@ struct SignupView: View {
                     // Social Icons
                     
                     HStack(spacing: 30) {
-                        SocialButton(imageName: "google")
+                        // GOOGLE BUTTON
+                        ZStack {
+                            Button(action: {
+                                print("DEBUG: Google Sign-In Tapped")
+                                viewModel.handleGoogleSignIn(modelContext: modelContext)
+                            }) {
+                                SocialButton(imageName: "google")
+                            }
+                        }
                                             
                         // APPLE BUTTON
                         ZStack {

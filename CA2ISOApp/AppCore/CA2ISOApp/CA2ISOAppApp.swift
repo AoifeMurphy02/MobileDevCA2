@@ -24,6 +24,7 @@ struct CA2ISOAppApp: App {
 
     init() {
         // 2. Request Permissions on launch
+        viewModel.configureGoogleSignIn()
         let center = UNUserNotificationCenter.current()
         center.delegate = notifyDelegate
         center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
