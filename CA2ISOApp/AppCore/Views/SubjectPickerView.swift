@@ -12,7 +12,7 @@ struct SubjectPickerView: View {
     @State private var subjects = [
         "English", "French", "German", "Spanish", "Mathematics",
         "Physics", "Biology", "Chemistry", "Computer Science",
-        "Geography", "History", "Music", "Art"
+        "Geography", "History", "Business", "Music", "Art"
     ]
     @State private var newSubjectName = ""
 

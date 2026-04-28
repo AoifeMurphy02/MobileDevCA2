@@ -133,7 +133,7 @@ struct CreateFlashcardManualView: View {
         )
 
         viewModel.loadFlashcardDraft(deckDraft)
-        dismiss()
+        //dismiss()
 
         DispatchQueue.main.async {
             viewModel.navPath.append(NavTarget.flashcardReview)
