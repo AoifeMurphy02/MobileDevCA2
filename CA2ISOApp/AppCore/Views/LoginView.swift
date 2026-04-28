@@ -5,19 +5,19 @@
 //  Created by Aoife on 24/03/2026.
 //
 
-import Foundation
 import SwiftUI
 import SwiftData
+import AuthenticationServices
+import GoogleSignIn
 
 struct LoginView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var rememberMe = false
-    
     @Query var allUsers: [User]
 
-    
     var body: some View {
-        @Bindable var viewModel = viewModel 
+        @Bindable var viewModel = viewModel
         ZStack {
             // Background Blue
             Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
@@ -47,86 +47,105 @@ struct LoginView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 36)
                     
-                    // Email Field
-                    HStack {
-                        Image(systemName: "envelope")
-                            .foregroundColor(.gray)
-                        TextField("Email", text: $viewModel.email)
-                            .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled(true)
-                                    .keyboardType(.emailAddress)
+                    // Input Fields
+                    Group {
+                        HStack {
+                            Image(systemName: "envelope").foregroundColor(.gray)
+                            TextField("Email", text: $viewModel.email)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled(true)
+                                .keyboardType(.emailAddress)
+                        }
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+                        
+                        HStack {
+                            Image(systemName: "lock").foregroundColor(.gray)
+                            SecureField("Password", text: $viewModel.password)
+                            Image(systemName: "eye.slash").foregroundColor(.gray)
+                        }
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
                     }
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
-                    .padding(.horizontal, 30)
-                    
-                    // Password Field
-                    HStack {
-                        Image(systemName: "lock")
-                            .foregroundColor(.gray)
-                        SecureField("Password", text: $viewModel.password)
-                        Image(systemName: "eye.slash")
-                            .foregroundColor(.gray)
-                    }
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
                     .padding(.horizontal, 30)
                     
                     // Remember Me Toggle
                     HStack {
                         Toggle(isOn: $rememberMe) {
-                            Text("Remember Me")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                            Text("Remember Me").font(.caption).foregroundColor(.gray)
                         }
                         .toggleStyle(LoginCheckboxStyle())
                         Spacer()
                     }
                     .padding(.horizontal, 30)
                     
+                    // Error Handling
                     if !viewModel.loginError.isEmpty {
-                        Text(viewModel.loginError)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .padding(.horizontal)
+                        Text(viewModel.loginError).font(.caption).foregroundColor(.red).padding(.horizontal)
                     }
                     
-                    
+                    // Main Sign In Button
                     Button(action: {
                         viewModel.loginUser(users: allUsers)
                     }) {
                         HStack {
-                            Spacer()
-                            Text("Sign In")
-                            Spacer()
-                            Image(systemName: "arrow.right.circle.fill")
-                                .font(.title2)
+                            Spacer(); Text("Sign In"); Spacer()
+                            Image(systemName: "arrow.right.circle.fill").font(.title2)
                         }
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color(red: 0.11, green: 0.49, blue: 0.95))
-                        .clipShape(Capsule())
+                        .foregroundColor(.white).padding().background(Color(red: 0.11, green: 0.49, blue: 0.95)).clipShape(Capsule())
                     }
                     .padding(.horizontal, 30)
                     
-                    Text("Or Continue With")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                    Text("Or Continue With").font(.caption).foregroundColor(.gray)
                     
-                    // Icons
+                    // --- SOCIAL ICONS SECTION (FIXED) ---
                     HStack(spacing: 30) {
-                        LoginSocialButton(imageName: "google")
-                        LoginSocialButton(imageName: "apple")
+                        
+                        // 1. GOOGLE BUTTON
+                        ZStack {
+                            LoginSocialButton(imageName: "google")
+                            
+                            // This transparent button handles the tap
+                            Button(action: {
+                                // Try real Google Login first
+                                // If SDK isn't set up, you can change this to .mockGoogleSignIn
+                                viewModel.handleGoogleSignIn(modelContext: modelContext)
+                            }) {
+                                Circle().fill(Color.white.opacity(0.01))
+                            }
+                            .frame(width: 45, height: 45)
+                            
+                        }
+                        
+                        // 2. APPLE BUTTON
+                        ZStack {
+                            LoginSocialButton(imageName: "apple")
+                            
+                            SignInWithAppleButton(
+                                onRequest: { $0.requestedScopes = [.email, .fullName] },
+                                onCompletion: { result in
+                                    viewModel.handleAppleSignIn(result: result, modelContext: modelContext)
+                                }
+                            )
+                            .blendMode(.destinationOver)
+                            .frame(width: 45, height: 45)
+                            
+                            // Bypass for personal accounts
+                            Button(action: {
+                                print("DEBUG: Apple Bypass triggered")
+                                viewModel.mockAppleSignIn(modelContext: modelContext)
+                            }) {
+                                Circle().fill(Color.white.opacity(0.01))
+                            }
+                            .frame(width: 45, height: 45)
+                        }
                     }
                     
                     // Link to Sign Up
                     NavigationLink(value: NavTarget.signup)  {
                         HStack(spacing: 4) {
-                            Text("Don't have an Account?")
-                                .foregroundColor(.gray)
-                            Text("SIGN UP")
-                                .fontWeight(.bold)
-                                .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                            Text("Don't have an Account?").foregroundColor(.gray)
+                            Text("SIGN UP").fontWeight(.bold).foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                         }
                         .font(.caption)
                     }
@@ -138,62 +157,52 @@ struct LoginView: View {
             }
             .ignoresSafeArea(edges: .bottom)
         }
-        // Hides the automatic back button to keep the design clean
         .navigationBarBackButtonHidden(true)
         .enableSwipeBack()
         .navigationDestination(isPresented: $viewModel.isLoggedIn) {
-            if viewModel.subjectOptions.isEmpty {
+            // Checks if user is new or returning
+            if viewModel.chosenSubjects.isEmpty {
                 SubjectPickerView()
             } else {
                 HomeView()
             }
         }
     }
-    
-    
-    
-    struct LoginCheckboxStyle: ToggleStyle {
-        func makeBody(configuration: Self.Configuration) -> some View {
-            return HStack {
-                Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                    .foregroundColor(configuration.isOn ? Color(red: 0.11, green: 0.49, blue: 0.95) : .gray)
-                    .onTapGesture { configuration.isOn.toggle() }
-                configuration.label
-            }
+}
+
+// MARK: - Helper Styles
+struct LoginCheckboxStyle: ToggleStyle {
+    func makeBody(configuration: Self.Configuration) -> some View {
+        return HStack {
+            Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
+                .foregroundColor(configuration.isOn ? Color(red: 0.11, green: 0.49, blue: 0.95) : .gray)
+                .onTapGesture { configuration.isOn.toggle() }
+            configuration.label
         }
     }
-    
-    struct LoginSocialButton: View {
-        var imageName: String
-        
-        var body: some View {
-            Circle()
-                .fill(Color.white)
-                .frame(width: 45, height: 45)
-                .shadow(color: .black.opacity(0.1), radius: 5)
-                .overlay(
-                    Group {
-                        if imageName == "apple" {
-                            // Apple official system icon
-                            Image(systemName: "applelogo")
-                                .font(.title3)
-                                .foregroundColor(.black)
-                        } else {
-                            
-                            Image(imageName)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 25, height: 25)
-                        }
+}
+
+struct LoginSocialButton: View {
+    var imageName: String
+    var body: some View {
+        Circle()
+            .fill(Color.white)
+            .frame(width: 45, height: 45)
+            .shadow(color: .black.opacity(0.1), radius: 5)
+            .overlay(
+                Group {
+                    if imageName == "apple" {
+                        Image(systemName: "applelogo").font(.title3).foregroundColor(.black)
+                    } else {
+                        Image(imageName).resizable().scaledToFit().frame(width: 25, height: 25)
                     }
-                )
-        }
+                }
+            )
     }
 }
 
 #Preview {
     NavigationStack {
-        LoginView()
-            .environment(AppViewModel())
+        LoginView().environment(AppViewModel())
     }
 }
