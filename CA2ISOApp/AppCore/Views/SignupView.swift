@@ -110,22 +110,27 @@ struct SignupView: View {
                                             
                         // APPLE BUTTON
                         ZStack {
-                           SocialButton(imageName: "apple")
-                                                
-                                    SignInWithAppleButton(
-                                         onRequest: { request in
-                                            print("DEBUG: Apple Sign-In Request Started")
-                                                        request.requestedScopes = [.email, .fullName]
-                                                    },
-                                                    onCompletion: { result in
-                                                        // Call controller logic
-                                                        viewModel.handleAppleSignIn(result: result, modelContext: modelContext)
-                                                    }
-                                                )
-                                                .blendMode(.destinationOver)
-                                                .frame(width: 45, height: 45)
-                                                .opacity(0.02)
-                                            }
+                            LoginSocialButton(imageName: "apple")
+                            
+                            SignInWithAppleButton(
+                                onRequest: { $0.requestedScopes = [.email, .fullName] },
+                                onCompletion: { result in
+                                    viewModel.handleAppleSignIn(result: result, modelContext: modelContext)
+                                }
+                            )
+                            .blendMode(.destinationOver)
+                            .frame(width: 45, height: 45)
+                            
+                            // Bypass for personal accounts
+                            Button(action: {
+                                print("DEBUG: Apple Bypass triggered")
+                                viewModel.mockAppleSignIn(modelContext: modelContext)
+                            }) {
+                                Circle().fill(Color.white.opacity(0.01))
+                            }
+                            .frame(width: 45, height: 45)
+                        }
+                    
                                         }
                                         .padding(.top, 10)
 
