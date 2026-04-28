@@ -25,6 +25,7 @@ enum NavTarget: Hashable {
     case practiceTests
     case timer
     case createFlashcardsManually
+    case flashcardSetDetail(FlashcardSet)
 }
 
 @Observable
@@ -60,6 +61,7 @@ class AppViewModel {
     var flashcardDraftAIGenerationMode = ""
     var flashcardDraftAIModelID = ""
     var flashcardDraftCards: [FlashcardDraft] = []
+    
     
     var pendingNavigation: NavTarget? = nil
 
@@ -199,6 +201,7 @@ class AppViewModel {
         flashcardDraftAIGenerationMode = draft.aiGenerationMode
         flashcardDraftAIModelID = draft.aiModelID
         flashcardDraftCards = draft.cards
+        self.flashcardDraftCards = draft.cards 
     }
 
     func clearFlashcardDraft() {
@@ -319,7 +322,6 @@ class AppViewModel {
             guard let user = result?.user else { return }
             
             let email = user.profile?.email ?? ""
-            let name = user.profile?.name ?? "Student"
             
             self.currentUserEmail = email
             

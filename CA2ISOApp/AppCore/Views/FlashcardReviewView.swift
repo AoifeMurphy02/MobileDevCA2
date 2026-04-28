@@ -278,34 +278,45 @@ struct FlashcardReviewView: View {
     }
 
     private func saveDeck() {
+        // 1. Validation: Ensure we actually have cards to save
+        guard !viewModel.flashcardDraftCards.isEmpty else {
+            self.errorMessage = "Please add at least one card to the deck."
+            self.showErrorAlert = true
+            return
+        }
+
         let deckDraft = FlashcardDeckDraft(
-            title: viewModel.flashcardDraftTitle,
-            sourceType: viewModel.flashcardDraftSourceType,
+            title: viewModel.flashcardDraftTitle.isEmpty ? "New Deck" : viewModel.flashcardDraftTitle,
+            sourceType: viewModel.flashcardDraftSourceType.isEmpty ? "Manual" : viewModel.flashcardDraftSourceType,
             subject: viewModel.flashcardDraftSubject,
             topic: viewModel.flashcardDraftTopic,
             rawText: viewModel.flashcardDraftRawText,
-            aiGenerationMode: viewModel.flashcardDraftAIGenerationMode,
-            aiModelID: viewModel.flashcardDraftAIModelID,
-            cards: viewModel.flashcardDraftCards
+            cards: viewModel.flashcardDraftCards // Ensure this array is passed!
         )
 
         do {
+            // 2. Build and Insert
             let flashcardSet = try FlashcardImportService.buildSet(from: deckDraft)
             modelContext.insert(flashcardSet)
+            
+            // 3. Save to SQLite
             try modelContext.save()
-            
-            
+            print("SUCCESS: Saved deck with \(flashcardSet.cards.count) cards.")
+
+            // 4. Navigate
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        self.savedFlashcardSet = flashcardSet
-                        self.shouldOpenSavedDeck = true
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            viewModel.clearFlashcardDraft()
-                        }
-                    }
-                } catch {
-            errorMessage = error.localizedDescription
-            showErrorAlert = true
+                self.savedFlashcardSet = flashcardSet
+                self.shouldOpenSavedDeck = true
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    viewModel.clearFlashcardDraft()
+                }
+            }
+        } catch {
+            // 5. Catch the specific error you were seeing
+            print("DATABASE ERROR: \(error)")
+            self.errorMessage = "Could not process deck: \(error.localizedDescription)"
+            self.showErrorAlert = true
         }
     }
 }

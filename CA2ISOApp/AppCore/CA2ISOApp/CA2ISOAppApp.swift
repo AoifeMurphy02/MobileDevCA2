@@ -51,6 +51,7 @@ struct CA2ISOAppApp: App {
                         case .practiceTests: CreatePracticeTestView()
                         case .timer: TimerView()
                         case .createFlashcardsManually: CreateFlashcardManualView()
+                        case .flashcardSetDetail(let set):FlashcardSetDetailView(flashcardSet: set)
                         }
                     }
             }
