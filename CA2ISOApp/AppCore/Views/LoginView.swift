@@ -8,10 +8,13 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import AuthenticationServices
 
 struct LoginView: View {
     @Environment(AppViewModel.self) private var viewModel
     @State private var rememberMe = false
+    
+    @Environment(\.modelContext) private var modelContext
     
     @Query var allUsers: [User]
 
@@ -116,7 +119,31 @@ struct LoginView: View {
                     // Icons
                     HStack(spacing: 30) {
                         LoginSocialButton(imageName: "google")
-                        LoginSocialButton(imageName: "apple")
+                        ZStack {
+                                            LoginSocialButton(imageName: "apple")
+                                            
+                                            SignInWithAppleButton(
+                                                onRequest: { request in
+                                                    request.requestedScopes = [.email, .fullName]
+                                                },
+                                                onCompletion: { result in
+                                                    // Call handler used in Signup
+                                                    viewModel.handleAppleSignIn(result: result, modelContext: modelContext)
+                                                }
+                                            )
+                                            .blendMode(.destinationOver)
+                                            .frame(width: 45, height: 45)
+                                            
+                                            // works without the Xcode Capability
+                                            Button(action: {
+                                                print("DEBUG: Capability missing - using Developer Bypass")
+                                                viewModel.mockAppleSignIn(modelContext: modelContext)
+                                            }) {
+                                                Circle().fill(Color.white.opacity(0.01))
+                                            }
+                                            .frame(width: 45, height: 45)
+                                        }
+                                    }
                     }
                     
                     // Link to Sign Up
@@ -137,7 +164,7 @@ struct LoginView: View {
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
             .ignoresSafeArea(edges: .bottom)
-        }
+        
         // Hides the automatic back button to keep the design clean
         .navigationBarBackButtonHidden(true)
         .enableSwipeBack()

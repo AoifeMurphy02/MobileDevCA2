@@ -9,6 +9,8 @@ import Observation
 import SwiftData
 import UserNotifications
 import SwiftUI
+import AuthenticationServices
+
 
 // Define the possible screens for navigation
 enum NavTarget: Hashable {
@@ -241,4 +243,46 @@ class AppViewModel {
 
         return orderedSubjects
     }
+        
+        //  fix to demo due to no Xcode Capability
+        func mockAppleSignIn(modelContext: ModelContext) {
+            let mockEmail = "aoife_apple@demo.ie"
+            print("DEBUG: Executing Apple Sign-In Bypass for \(mockEmail)")
+            
+            self.currentUserEmail = mockEmail
+           
+            
+          
+            let newUser = User(email: mockEmail, appleUserID: "mock_id_12345")
+            modelContext.insert(newUser)
+            
+            // moves the screen
+            DispatchQueue.main.async {
+                self.isLoggedIn = true
+                self.isSignedUp = true
+            }
+        }
+
+        // real apple login 
+        func handleAppleSignIn(result: Result<ASAuthorization, Error>, modelContext: ModelContext) {
+            switch result {
+            case .success(let auth):
+                if let appleIDCredential = auth.credential as? ASAuthorizationAppleIDCredential {
+                    let userId = appleIDCredential.user
+                    let email = appleIDCredential.email ?? "AppleUser@test.com"
+                    
+                    self.currentUserEmail = email
+                    let newUser = User(email: email, appleUserID: userId)
+                    modelContext.insert(newUser)
+                    
+                    DispatchQueue.main.async {
+                        self.isLoggedIn = true
+                        self.isSignedUp = true
+                    }
+                }
+            case .failure(let error):
+                print("Apple Auth failed: \(error.localizedDescription)")
+                self.loginError = "Sign in with Apple failed."
+            }
+        }
 }

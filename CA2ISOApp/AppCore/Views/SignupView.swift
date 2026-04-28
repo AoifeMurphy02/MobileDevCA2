@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import AuthenticationServices
 
 struct SignupView: View {
     @Environment(AppViewModel.self) private var viewModel
@@ -95,12 +96,31 @@ struct SignupView: View {
                         .foregroundColor(.gray)
                     
                     // Social Icons
+                    
                     HStack(spacing: 30) {
                         SocialButton(imageName: "google")
-                        SocialButton(imageName: "apple")
-                    }
-                    
-                    // Link to Login
+                                            
+                        // APPLE BUTTON
+                        ZStack {
+                           SocialButton(imageName: "apple")
+                                                
+                                    SignInWithAppleButton(
+                                         onRequest: { request in
+                                            print("DEBUG: Apple Sign-In Request Started")
+                                                        request.requestedScopes = [.email, .fullName]
+                                                    },
+                                                    onCompletion: { result in
+                                                        // Call controller logic
+                                                        viewModel.handleAppleSignIn(result: result, modelContext: modelContext)
+                                                    }
+                                                )
+                                                .blendMode(.destinationOver)
+                                                .frame(width: 45, height: 45)
+                                                .opacity(0.02)
+                                            }
+                                        }
+                                        .padding(.top, 10)
+
                     NavigationLink(value: NavTarget.login) {
                         HStack(spacing: 4) {
                             Text("Already have an Account?")
@@ -122,7 +142,6 @@ struct SignupView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .enableSwipeBack()
-        // This is what triggers the move to Home
         .navigationDestination(isPresented: $viewModel.isSignedUp) {
             SubjectPickerView()
         }
