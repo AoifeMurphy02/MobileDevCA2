@@ -182,22 +182,16 @@ struct FlashcardReviewView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
                 ForEach(Array(self.viewModel.flashcardDraftCards.enumerated()), id: \.element.id) { displayIndex, card in
-                    if let cardBinding = bindingForCard(id: card.id),
-                       let currentIndex = indexOfCard(with: card.id) {
+                    // We check if the card still exists in the array before trying to draw it
+                    if let cardBinding = bindingForCard(id: card.id) {
                         FlashcardEditorCard(
                             index: displayIndex,
                             card: cardBinding,
-                            canMoveUp: currentIndex > 0,
-                            canMoveDown: currentIndex < self.viewModel.flashcardDraftCards.count - 1,
-                            moveUp: {
-                                moveCard(for: card.id, offset: -1)
-                            },
-                            moveDown: {
-                                moveCard(for: card.id, offset: 1)
-                            },
-                            deleteAction: {
-                                deleteCard(with: card.id)
-                            }
+                            canMoveUp: displayIndex > 0,
+                            canMoveDown: displayIndex < self.viewModel.flashcardDraftCards.count - 1,
+                            moveUp: { moveCard(for: card.id, offset: -1) },
+                            moveDown: { moveCard(for: card.id, offset: 1) },
+                            deleteAction: { deleteCard(with: card.id) }
                         )
                     }
                 }
@@ -219,32 +213,36 @@ struct FlashcardReviewView: View {
                     .clipShape(Capsule())
             }
 
-            Button {
-                self.viewModel.addEmptyFlashcardDraft(style: .summary)
-            } label: {
-                Text("Add Another Card")
-                    .font(.headline)
-                    .foregroundColor(Color(red: 0.25, green: 0.53, blue: 0.94))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .overlay(
-                        Capsule()
-                            .stroke(Color(red: 0.25, green: 0.53, blue: 0.94).opacity(0.4), lineWidth: 1.4)
-                    )
-            }
+//            Button {
+//                self.viewModel.addEmptyFlashcardDraft(style: .summary)
+//            } label: {
+//                Text("Add Another Card")
+//                    .font(.headline)
+//                    .foregroundColor(Color(red: 0.25, green: 0.53, blue: 0.94))
+//                    .frame(maxWidth: .infinity)
+//                    .padding(.vertical, 16)
+//                    .overlay(
+//                        Capsule()
+//                            .stroke(Color(red: 0.25, green: 0.53, blue: 0.94).opacity(0.4), lineWidth: 1.4)
+//                    )
+//            }
         }
     }
 
     private func bindingForCard(id: UUID) -> Binding<FlashcardDraft>? {
-        guard let index = indexOfCard(with: id) else { return nil }
-
         return Binding(
             get: {
-                self.viewModel.flashcardDraftCards[index]
+                if let currentIndex = self.viewModel.flashcardDraftCards.firstIndex(where: { $0.id == id }) {
+                    return self.viewModel.flashcardDraftCards[currentIndex]
+                }
+                // Fallback object to prevent "Index out of range"
+                return FlashcardDraft(question: "", answer: "")
             },
             set: { updatedCard in
-                guard let currentIndex = indexOfCard(with: id) else { return }
-                self.viewModel.flashcardDraftCards[currentIndex] = updatedCard
+                // Refind the index when save
+                if let currentIndex = self.viewModel.flashcardDraftCards.firstIndex(where: { $0.id == id }) {
+                    self.viewModel.flashcardDraftCards[currentIndex] = updatedCard
+                }
             }
         )
     }
@@ -260,8 +258,13 @@ struct FlashcardReviewView: View {
     }
 
     private func deleteCard(with id: UUID) {
-        guard let index = indexOfCard(with: id) else { return }
-        self.viewModel.flashcardDraftCards.remove(at: index)
+       
+        withAnimation {
+            // remove the card that matches this specific ID
+            self.viewModel.flashcardDraftCards.removeAll(where: { $0.id == id })
+        }
+        
+        print("DEBUG: Card removed. Remaining count: \(viewModel.flashcardDraftCards.count)")
     }
 
     private func moveCard(from currentIndex: Int, to newIndex: Int) {
@@ -275,31 +278,45 @@ struct FlashcardReviewView: View {
     }
 
     private func saveDeck() {
+        // 1. Validation: Ensure we actually have cards to save
+        guard !viewModel.flashcardDraftCards.isEmpty else {
+            self.errorMessage = "Please add at least one card to the deck."
+            self.showErrorAlert = true
+            return
+        }
+
         let deckDraft = FlashcardDeckDraft(
-            title: viewModel.flashcardDraftTitle,
-            sourceType: viewModel.flashcardDraftSourceType,
+            title: viewModel.flashcardDraftTitle.isEmpty ? "New Deck" : viewModel.flashcardDraftTitle,
+            sourceType: viewModel.flashcardDraftSourceType.isEmpty ? "Manual" : viewModel.flashcardDraftSourceType,
             subject: viewModel.flashcardDraftSubject,
             topic: viewModel.flashcardDraftTopic,
             rawText: viewModel.flashcardDraftRawText,
-            aiGenerationMode: viewModel.flashcardDraftAIGenerationMode,
-            aiModelID: viewModel.flashcardDraftAIModelID,
-            cards: viewModel.flashcardDraftCards
+            cards: viewModel.flashcardDraftCards // Ensure this array is passed!
         )
 
         do {
+            // 2. Build and Insert
             let flashcardSet = try FlashcardImportService.buildSet(from: deckDraft)
             modelContext.insert(flashcardSet)
+            
+            // 3. Save to SQLite
             try modelContext.save()
+            print("SUCCESS: Saved deck with \(flashcardSet.cards.count) cards.")
 
-            if !flashcardSet.subject.isEmpty {
-                viewModel.selectSubject(flashcardSet.subject)
+            // 4. Navigate
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.savedFlashcardSet = flashcardSet
+                self.shouldOpenSavedDeck = true
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    viewModel.clearFlashcardDraft()
+                }
             }
-            savedFlashcardSet = flashcardSet
-            viewModel.clearFlashcardDraft()
-            shouldOpenSavedDeck = true
         } catch {
-            errorMessage = error.localizedDescription
-            showErrorAlert = true
+            // 5. Catch the specific error you were seeing
+            print("DATABASE ERROR: \(error)")
+            self.errorMessage = "Could not process deck: \(error.localizedDescription)"
+            self.showErrorAlert = true
         }
     }
 }
