@@ -16,40 +16,43 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    headerCard
-                    subjectSection
-                    quickActionsSection
+            ZStack(alignment: .bottom) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        headerCard
+                        subjectSection
+                        
+                        // Flashcardsfirst
+                        librarySection
 
-                    if viewModel.hasFlashcardDraft {
-                        FlashcardResumeDraftCard(
-                            title: viewModel.flashcardDraftTitle,
-                            cardCount: viewModel.flashcardDraftCards.count
-                        ) {
-                            viewModel.navPath.append(NavTarget.flashcardReview)
+                        // If draft exists, it sits  near the cards
+                        if viewModel.hasFlashcardDraft {
+                            FlashcardResumeDraftCard(
+                                title: viewModel.flashcardDraftTitle,
+                                cardCount: viewModel.flashcardDraftCards.count
+                            ) {
+                                viewModel.navPath.append(NavTarget.flashcardReview)
+                            }
                         }
+
+                        // quick actions
+                        quickActionsSection
                     }
-
-                    librarySection
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 100)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 100)
-            }
 
-            CustomNavBar(selectedTab: 0)
-        }
-        .background(Color(red: 0.97, green: 0.99, blue: 1.0).ignoresSafeArea())
-        .navigationBarBackButtonHidden(true)
-        .onAppear {
-            if viewModel.activeSubject.isEmpty, let firstSubject = viewModel.subjectOptions.first {
-                viewModel.selectSubject(firstSubject)
+                CustomNavBar(selectedTab: 0)
+            }
+            .background(Color(red: 0.97, green: 0.99, blue: 1.0).ignoresSafeArea())
+            .navigationBarBackButtonHidden(true)
+            .onAppear {
+                if viewModel.activeSubject.isEmpty, let firstSubject = viewModel.subjectOptions.first {
+                    viewModel.selectSubject(firstSubject)
+                }
             }
         }
-    }
-
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {

@@ -79,6 +79,7 @@ final class FlashcardSet {
         self.aiGenerationMode = aiGenerationMode
         self.aiModelID = aiModelID
         self.createdAt = createdAt
+       
     }
 }
 
