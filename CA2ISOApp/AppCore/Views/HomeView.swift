@@ -3,7 +3,9 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
+    @State private var progressSnapshots: [String: FlashcardStudyProgressSnapshot] = [:]
 
     private var visibleSets: [FlashcardSet] {
         guard !viewModel.activeSubject.isEmpty else {
@@ -25,18 +27,7 @@ struct HomeView: View {
                         // Flashcardsfirst
                         librarySection
 
-                        // If draft exists, it sits  near the cards
-                        if viewModel.hasFlashcardDraft {
-                            FlashcardResumeDraftCard(
-                                title: viewModel.flashcardDraftTitle,
-                                cardCount: viewModel.flashcardDraftCards.count
-                            ) {
-                                viewModel.navPath.append(NavTarget.flashcardReview)
-                            }
-                        }
-
-                        // quick actions
-                        quickActionsSection
+                        progressSection
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
@@ -50,6 +41,13 @@ struct HomeView: View {
             .onAppear {
                 if viewModel.activeSubject.isEmpty, let firstSubject = viewModel.subjectOptions.first {
                     viewModel.selectSubject(firstSubject)
+                }
+
+                refreshProgressSnapshots()
+            }
+            .onChange(of: scenePhase) { _, newValue in
+                if newValue == .active {
+                    refreshProgressSnapshots()
                 }
             }
         }
@@ -150,37 +148,48 @@ struct HomeView: View {
         }
     }
 
-    private var quickActionsSection: some View {
+    private var progressSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Actions")
+            Text(progressSectionTitle)
                 .font(.headline)
 
-            VStack(spacing: 12) {
-                HomeActionCard(
-                    title: "Create AI Flashcards",
-                    subtitle: "Import notes, files, or images and turn them into ranked study cards.",
-                    icon: "sparkles.rectangle.stack",
-                    tint: Color(red: 0.25, green: 0.53, blue: 0.94)
-                ) {
-                    viewModel.navPath.append(NavTarget.flashcards)
-                }
+            Text(progressSectionDescription)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
 
-                HomeActionCard(
-                    title: "Manual Deck Builder",
-                    subtitle: "Start with one card and edit the rest in the deck review flow.",
-                    icon: "square.and.pencil",
-                    tint: Color(red: 0.0, green: 0.63, blue: 0.55)
+            if shouldShowDraftProgressCard {
+                PendingDraftProgressCard(
+                    title: viewModel.flashcardDraftTitle,
+                    subject: viewModel.flashcardDraftSubject,
+                    cardCount: viewModel.flashcardDraftCards.count
                 ) {
-                    viewModel.navPath.append(NavTarget.createFlashcardsManually)
+                    viewModel.navPath.append(NavTarget.flashcardReview)
                 }
+            }
 
-                HomeActionCard(
-                    title: "Open Study Timer",
-                    subtitle: "Use focused study sessions and keep your routine consistent.",
-                    icon: "timer",
-                    tint: Color(red: 0.95, green: 0.57, blue: 0.18)
-                ) {
-                    viewModel.navPath.append(NavTarget.timer)
+            if visibleSets.isEmpty {
+                if !shouldShowDraftProgressCard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("No saved deck progress yet.")
+                            .font(.headline)
+                        Text("Once you start studying a saved deck, reviewed and learnt card counts will appear here.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                }
+            } else {
+                ForEach(visibleSets.prefix(6)) { flashcardSet in
+                    NavigationLink(destination: FlashcardSetDetailView(flashcardSet: flashcardSet)) {
+                        DeckProgressCard(
+                            flashcardSet: flashcardSet,
+                            snapshot: progressSnapshot(for: flashcardSet)
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -246,6 +255,42 @@ struct HomeView: View {
 
         return "Create a new deck and it will appear here once you save it."
     }
+
+    private var shouldShowDraftProgressCard: Bool {
+        guard viewModel.hasFlashcardDraft else { return false }
+
+        if viewModel.activeSubject.isEmpty {
+            return true
+        }
+
+        let draftSubject = viewModel.flashcardDraftSubject.trimmingCharacters(in: .whitespacesAndNewlines)
+        return draftSubject.isEmpty || draftSubject == viewModel.activeSubject
+    }
+
+    private var progressSectionTitle: String {
+        if viewModel.activeSubject.isEmpty {
+            return "Study Progress"
+        }
+
+        return "\(viewModel.activeSubject) Progress"
+    }
+
+    private var progressSectionDescription: String {
+        if viewModel.activeSubject.isEmpty {
+            return "See what still needs review, what is already learnt, and what is waiting to be saved."
+        }
+
+        return "Track saved deck progress for \(viewModel.activeSubject), including reviewed, learnt, and still-learning cards."
+    }
+
+    private func refreshProgressSnapshots() {
+        progressSnapshots = FlashcardStudyProgressStore.loadAllSnapshots()
+    }
+
+    private func progressSnapshot(for flashcardSet: FlashcardSet) -> FlashcardStudyProgressSnapshot {
+        let deckID = FlashcardStudyProgressStore.deckID(for: flashcardSet)
+        return progressSnapshots[deckID] ?? FlashcardStudyProgressSnapshot.empty(for: flashcardSet)
+    }
 }
 
 private struct SubjectFilterChip: View {
@@ -275,11 +320,10 @@ private struct SubjectFilterChip: View {
     }
 }
 
-private struct HomeActionCard: View {
+private struct PendingDraftProgressCard: View {
     let title: String
-    let subtitle: String
-    let icon: String
-    let tint: Color
+    let subject: String
+    let cardCount: Int
     let action: () -> Void
 
     var body: some View {
@@ -287,20 +331,20 @@ private struct HomeActionCard: View {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(tint.opacity(0.14))
+                        .fill(Color.orange.opacity(0.14))
                         .frame(width: 54, height: 54)
 
-                    Image(systemName: icon)
+                    Image(systemName: "square.and.pencil")
                         .font(.title3)
-                        .foregroundColor(tint)
+                        .foregroundColor(Color.orange)
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(title)
+                    Text("Review, Save, and Study")
                         .font(.headline)
                         .foregroundColor(.black)
 
-                    Text(subtitle)
+                    Text(draftSubtitle)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
@@ -314,6 +358,98 @@ private struct HomeActionCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
+    }
+
+    private var draftSubtitle: String {
+        let resolvedTitle = title.isEmpty ? "Untitled Deck" : title
+        let subjectPrefix = subject.isEmpty ? "" : "\(subject) • "
+        return "\(subjectPrefix)\(resolvedTitle) • \(cardCount) cards still need review before you save"
+    }
+}
+
+private struct DeckProgressCard: View {
+    let flashcardSet: FlashcardSet
+    let snapshot: FlashcardStudyProgressSnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(flashcardSet.title)
+                        .font(.headline)
+                        .foregroundColor(.black)
+
+                    Text(deckSubtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+            }
+
+            HStack(spacing: 10) {
+                ProgressPill(
+                    title: "\(snapshot.reviewedCardCount)/\(snapshot.totalCardCount) reviewed",
+                    tint: Color(red: 0.25, green: 0.53, blue: 0.94)
+                )
+
+                ProgressPill(
+                    title: "\(snapshot.learnedCardCount) learnt",
+                    tint: Color(red: 0.45, green: 0.81, blue: 0.49)
+                )
+
+                ProgressPill(
+                    title: "\(snapshot.stillLearningCardCount) still learning",
+                    tint: Color(red: 0.98, green: 0.48, blue: 0.43)
+                )
+            }
+
+            Text(remainingLine)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var deckSubtitle: String {
+        let details = [flashcardSet.subject, flashcardSet.sourceType]
+            .filter { !$0.isEmpty }
+            .joined(separator: " • ")
+
+        if details.isEmpty {
+            return snapshot.hasProgress ? "Latest study progress" : "Ready to study"
+        }
+
+        return details
+    }
+
+    private var remainingLine: String {
+        if snapshot.hasProgress {
+            return "\(snapshot.remainingCardCount) cards not reviewed in the latest study round."
+        }
+
+        return "No study progress saved yet."
+    }
+}
+
+private struct ProgressPill: View {
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundColor(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(tint.opacity(0.12))
+            .clipShape(Capsule())
     }
 }
 

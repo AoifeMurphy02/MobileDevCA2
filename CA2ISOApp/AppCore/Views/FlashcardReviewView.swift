@@ -12,11 +12,13 @@ struct FlashcardReviewView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
     @State private var shouldOpenSavedDeck = false
     @State private var savedFlashcardSet: FlashcardSet?
+    @State private var draftWasFinalized = false
 
     var body: some View {
         ScrollView {
@@ -40,6 +42,8 @@ struct FlashcardReviewView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Discard") {
+                    draftWasFinalized = true
+                    StudyNotificationManager.cancelDraftReviewReminder()
                     viewModel.clearFlashcardDraft()
                     dismiss()
                 }
@@ -50,6 +54,23 @@ struct FlashcardReviewView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(errorMessage)
+        }
+        .onAppear {
+            draftWasFinalized = false
+            StudyNotificationManager.cancelDraftReviewReminder()
+        }
+        .onDisappear {
+            scheduleDraftReviewReminderIfNeeded()
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            switch newValue {
+            case .active:
+                StudyNotificationManager.cancelDraftReviewReminder()
+            case .background:
+                scheduleDraftReviewReminderIfNeeded()
+            default:
+                break
+            }
         }
     }
 
@@ -302,6 +323,8 @@ struct FlashcardReviewView: View {
             // 3. Save to SQLite
             try modelContext.save()
             print("SUCCESS: Saved deck with \(flashcardSet.cards.count) cards.")
+            draftWasFinalized = true
+            StudyNotificationManager.cancelDraftReviewReminder()
 
             // 4. Navigate
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -318,6 +341,20 @@ struct FlashcardReviewView: View {
             self.errorMessage = "Could not process deck: \(error.localizedDescription)"
             self.showErrorAlert = true
         }
+    }
+
+    private func scheduleDraftReviewReminderIfNeeded() {
+        guard !draftWasFinalized, !viewModel.flashcardDraftCards.isEmpty else {
+            StudyNotificationManager.cancelDraftReviewReminder()
+            return
+        }
+
+        let deckTitle = viewModel.flashcardDraftTitle.isEmpty ? "Untitled Deck" : viewModel.flashcardDraftTitle
+        StudyNotificationManager.scheduleDraftReviewReminder(
+            deckTitle: deckTitle,
+            subject: viewModel.flashcardDraftSubject,
+            cardCount: viewModel.flashcardDraftCards.count
+        )
     }
 }
 
