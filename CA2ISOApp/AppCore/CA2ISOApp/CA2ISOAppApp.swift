@@ -11,12 +11,13 @@ import UserNotifications
 
 @main
 struct CA2ISOAppApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel = AppViewModel()
 
     //  Handle notifications while app is open
     class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-            completionHandler([.banner, .sound])
+            completionHandler([.banner, .sound, .list])
         }
     }
     
@@ -27,9 +28,8 @@ struct CA2ISOAppApp: App {
         viewModel.configureGoogleSignIn()
         let center = UNUserNotificationCenter.current()
         center.delegate = notifyDelegate
-        center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-            print(granted ? "Notifications Allowed" : "Notifications Denied")
-        }
+        StudyNotificationManager.requestAuthorizationIfNeeded()
+        StudyNotificationManager.refreshDailyStudyReminder()
     }
 
     var body: some Scene {
@@ -72,6 +72,11 @@ struct CA2ISOAppApp: App {
                 }
             }
             .environment(viewModel)
+            .onChange(of: scenePhase) { _, newValue in
+                if newValue == .active {
+                    StudyNotificationManager.refreshDailyStudyReminder()
+                }
+            }
         }
         .modelContainer(for: [User.self, FlashcardSet.self, Flashcard.self])
     }
