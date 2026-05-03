@@ -28,6 +28,7 @@ private enum FlashcardStudyRound {
 struct FlashcardSetDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
 
     let flashcardSet: FlashcardSet
 
@@ -60,6 +61,19 @@ struct FlashcardSetDetailView: View {
     private var currentCard: Flashcard? {
         guard activeCards.indices.contains(currentIndex) else { return nil }
         return activeCards[currentIndex]
+    }
+
+    private var notificationDeckID: String {
+        "\(flashcardSet.title)-\(Int(flashcardSet.createdAt.timeIntervalSince1970))"
+    }
+
+    private var hasMeaningfulProgress: Bool {
+        !sessionComplete && (
+            currentIndex > 0 ||
+            showAnswer ||
+            !masteredCardIDs.isEmpty ||
+            !reviewCardIDs.isEmpty
+        )
     }
 
     var body: some View {
@@ -188,8 +202,23 @@ struct FlashcardSetDetailView: View {
         .navigationBarBackButtonHidden(true)
         .enableSwipeBack()
         .onAppear {
+            StudyNotificationManager.cancelResumeStudy(for: notificationDeckID)
+            StudyNotificationManager.cancelReviewReminder(for: notificationDeckID)
             guard studyCardIDs.isEmpty else { return }
             startRound(.all, resetProgress: true)
+        }
+        .onDisappear {
+            scheduleResumeReminderIfNeeded()
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            switch newValue {
+            case .active:
+                StudyNotificationManager.cancelResumeStudy(for: notificationDeckID)
+            case .background:
+                scheduleResumeReminderIfNeeded()
+            default:
+                break
+            }
         }
         .sheet(isPresented: $showAssistantSheet) {
             FlashcardDeckAssistantView(flashcardSet: flashcardSet)
@@ -205,6 +234,7 @@ struct FlashcardSetDetailView: View {
 
             ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .destructive) {
+                    FlashcardStudyProgressStore.removeProgress(for: flashcardSet)
                     modelContext.delete(flashcardSet)
                     try? modelContext.save()
                     dismiss()
@@ -274,12 +304,18 @@ struct FlashcardSetDetailView: View {
     private func markStillLearning() {
         guard let currentCard else { return }
         reviewCardIDs.insert(currentCard.persistentModelID)
+        masteredCardIDs.remove(currentCard.persistentModelID)
+        persistProgressSnapshot()
+        recordStudyActivity()
         moveToNextCard()
     }
 
     private func markMastered() {
         guard let currentCard else { return }
         masteredCardIDs.insert(currentCard.persistentModelID)
+        reviewCardIDs.remove(currentCard.persistentModelID)
+        persistProgressSnapshot()
+        recordStudyActivity()
         moveToNextCard()
     }
 
@@ -294,6 +330,7 @@ struct FlashcardSetDetailView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 sessionComplete = true
             }
+            finishSession()
         }
     }
 
@@ -309,10 +346,16 @@ struct FlashcardSetDetailView: View {
         showAnswer = false
         cardRotation = 0
         sessionComplete = false
+        StudyNotificationManager.cancelResumeStudy(for: notificationDeckID)
+
+        if round == .reviewOnly {
+            StudyNotificationManager.cancelReviewReminder(for: notificationDeckID)
+        }
 
         if resetProgress {
             masteredCardIDs.removeAll()
             reviewCardIDs.removeAll()
+            StudyNotificationManager.cancelReviewReminder(for: notificationDeckID)
         }
     }
 
@@ -327,6 +370,59 @@ struct FlashcardSetDetailView: View {
         case .starredOnly:
             return starredCardIDs
         }
+    }
+
+    private func recordStudyActivity() {
+        StudyNotificationManager.recordStudyActivity(
+            deckTitle: flashcardSet.title,
+            subject: flashcardSet.subject
+        )
+    }
+
+    private func finishSession() {
+        StudyNotificationManager.cancelResumeStudy(for: notificationDeckID)
+        persistProgressSnapshot()
+        recordStudyActivity()
+
+        if reviewCardIDs.isEmpty {
+            StudyNotificationManager.cancelReviewReminder(for: notificationDeckID)
+            return
+        }
+
+        StudyNotificationManager.scheduleReviewReminder(
+            deckID: notificationDeckID,
+            deckTitle: flashcardSet.title,
+            reviewCount: reviewCardIDs.count
+        )
+    }
+
+    private func scheduleResumeReminderIfNeeded() {
+        guard hasMeaningfulProgress, !activeCards.isEmpty else {
+            StudyNotificationManager.cancelResumeStudy(for: notificationDeckID)
+            return
+        }
+
+        let currentCardNumber = min(currentIndex + 1, activeCards.count)
+        let progressText = "You were on card \(currentCardNumber) of \(activeCards.count) in \(flashcardSet.title). Pick it up where you left off."
+
+        StudyNotificationManager.scheduleResumeStudy(
+            deckID: notificationDeckID,
+            deckTitle: flashcardSet.title,
+            subject: flashcardSet.subject,
+            progressText: progressText
+        )
+    }
+
+    private func persistProgressSnapshot() {
+        let learnedCount = masteredCardIDs.count
+        let stillLearningCount = reviewCardIDs.count
+
+        FlashcardStudyProgressStore.updateProgress(
+            for: flashcardSet,
+            reviewedCardCount: learnedCount + stillLearningCount,
+            learnedCardCount: learnedCount,
+            stillLearningCardCount: stillLearningCount
+        )
     }
 }
 
