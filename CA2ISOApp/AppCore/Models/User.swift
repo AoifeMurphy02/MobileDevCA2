@@ -16,14 +16,16 @@ class User {
     var password: String?
     //var password: String
     var signUpDate: Date
-    var savedSubjects: [String] = []
+    var savedstudySubjects: [String] = []
+    var streakCount: Int = 0
+    var lastActivityDate: Date?
     
-    init(email: String, password: String? = nil, appleUserID: String? = nil, googleUserID: String? = nil, savedSubjects: [String] = [])  {
+    init(email: String, password: String? = nil, appleUserID: String? = nil, googleUserID: String? = nil, savedstudySubjects: [String] = [])  {
         self.email = email
         self.password = password
         self.appleUserID = appleUserID
         self.googleUserID = googleUserID
-        self.savedSubjects = savedSubjects
+        self.savedstudySubjects = savedstudySubjects
         self.signUpDate = Date.now
     }
 }

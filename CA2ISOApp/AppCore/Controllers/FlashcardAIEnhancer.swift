@@ -7,12 +7,12 @@ import NaturalLanguage
 
 struct FlashcardDeckMetadataSuggestion: Sendable {
     let title: String
-    let subject: String
+    let studySubject: String
     let topic: String
 
-    nonisolated init(title: String, subject: String, topic: String) {
+    nonisolated init(title: String, studySubject: String, topic: String) {
         self.title = title
-        self.subject = subject
+        self.studySubject = studySubject
         self.topic = topic
     }
 }
@@ -107,8 +107,8 @@ enum FlashcardAIEnhancer {
     nonisolated static func suggestMetadata(
         from sourceText: String,
         fallbackTitle: String,
-        availableSubjects: [String],
-        preferredSubject: String,
+        availablestudySubjects: [String],
+        preferredstudySubject: String,
         fallbackTopic: String
     ) -> FlashcardDeckMetadataSuggestion {
         let cleanedText = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -118,22 +118,22 @@ enum FlashcardAIEnhancer {
             fallbackTopic: fallbackTopic,
             sourceAnalysis: sourceAnalysis
         )
-        let resolvedSubject = suggestSubject(
+        let resolvedstudySubject = suggeststudySubject(
             from: cleanedText,
-            availableSubjects: availableSubjects,
-            preferredSubject: preferredSubject,
+            availablestudySubjects: availablestudySubjects,
+            preferredstudySubject: preferredstudySubject,
             fallbackTopic: resolvedTopic,
             sourceAnalysis: sourceAnalysis
         )
         let resolvedTitle = suggestTitle(
             fallbackTitle: fallbackTitle,
             topic: resolvedTopic,
-            subject: resolvedSubject
+            studySubject: resolvedstudySubject
         )
 
         return FlashcardDeckMetadataSuggestion(
             title: resolvedTitle,
-            subject: resolvedSubject,
+            studySubject: resolvedstudySubject,
             topic: resolvedTopic
         )
     }
@@ -436,20 +436,20 @@ enum FlashcardAIEnhancer {
         return ""
     }
 
-    private nonisolated static func suggestSubject(
+    private nonisolated static func suggeststudySubject(
         from text: String,
-        availableSubjects: [String],
-        preferredSubject: String,
+        availablestudySubjects: [String],
+        preferredstudySubject: String,
         fallbackTopic: String,
         sourceAnalysis: FlashcardSourceAnalysis
     ) -> String {
-        let trimmedPreferredSubject = preferredSubject.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedSubjects = availableSubjects
+        let trimmedPreferredstudySubject = preferredstudySubject.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedstudySubjects = availablestudySubjects
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        guard !normalizedSubjects.isEmpty else {
-            return trimmedPreferredSubject
+        guard !normalizedstudySubjects.isEmpty else {
+            return trimmedPreferredstudySubject
         }
 
         let loweredText = text.lowercased()
@@ -463,11 +463,11 @@ enum FlashcardAIEnhancer {
             )
         )
 
-        let subjectScores = normalizedSubjects.map { subject in
+        let studySubjectScores = normalizedstudySubjects.map { studySubject in
             (
-                subject: subject,
-                score: subjectScore(
-                    for: subject,
+                studySubject: studySubject,
+                score: studySubjectScore(
+                    for: studySubject,
                     loweredText: loweredText,
                     extractedKeywords: extractedKeywords
                 )
@@ -475,39 +475,39 @@ enum FlashcardAIEnhancer {
         }
         .sorted { lhs, rhs in
             if lhs.score == rhs.score {
-                return lhs.subject < rhs.subject
+                return lhs.studySubject < rhs.studySubject
             }
             return lhs.score > rhs.score
         }
 
-        if let bestMatch = subjectScores.first, bestMatch.score >= 16 {
-            return bestMatch.subject
+        if let bestMatch = studySubjectScores.first, bestMatch.score >= 16 {
+            return bestMatch.studySubject
         }
 
-        if !trimmedPreferredSubject.isEmpty {
-            return trimmedPreferredSubject
+        if !trimmedPreferredstudySubject.isEmpty {
+            return trimmedPreferredstudySubject
         }
 
-        return subjectScores.first?.subject ?? normalizedSubjects.first ?? ""
+        return studySubjectScores.first?.studySubject ?? normalizedstudySubjects.first ?? ""
     }
 
-    private nonisolated static func subjectScore(
-        for subject: String,
+    private nonisolated static func studySubjectScore(
+        for studySubject: String,
         loweredText: String,
         extractedKeywords: Set<String>
     ) -> Int {
-        let normalizedSubject = subject.lowercased()
+        let normalizedstudySubject = studySubject.lowercased()
         var score = 0
 
-        if loweredText.contains(normalizedSubject) {
+        if loweredText.contains(normalizedstudySubject) {
             score += 44
         }
 
-        for token in tokens(in: subject) where extractedKeywords.contains(token) {
+        for token in tokens(in: studySubject) where extractedKeywords.contains(token) {
             score += 24
         }
 
-        for keyword in subjectKeywords[normalizedSubject, default: []] where loweredText.contains(keyword) {
+        for keyword in studySubjectKeywords[normalizedstudySubject, default: []] where loweredText.contains(keyword) {
             score += 9
         }
 
@@ -517,26 +517,26 @@ enum FlashcardAIEnhancer {
     private nonisolated static func suggestTitle(
         fallbackTitle: String,
         topic: String,
-        subject: String
+        studySubject: String
     ) -> String {
         let trimmedTitle = fallbackTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedTopic = topic.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedSubject = subject.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedstudySubject = studySubject.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if !trimmedTitle.isEmpty && !isGenericTitle(trimmedTitle) {
             return trimmedTitle
         }
 
-        if !trimmedTopic.isEmpty && !trimmedSubject.isEmpty {
-            return "\(trimmedTopic) • \(trimmedSubject)"
+        if !trimmedTopic.isEmpty && !trimmedstudySubject.isEmpty {
+            return "\(trimmedTopic) • \(trimmedstudySubject)"
         }
 
         if !trimmedTopic.isEmpty {
             return "\(trimmedTopic) Flashcards"
         }
 
-        if !trimmedSubject.isEmpty {
-            return "\(trimmedSubject) Flashcards"
+        if !trimmedstudySubject.isEmpty {
+            return "\(trimmedstudySubject) Flashcards"
         }
 
         return "Smart Flashcards"
@@ -860,7 +860,7 @@ enum FlashcardAIEnhancer {
         "shall", "could", "would", "should", "into", "onto", "each", "such"
     ]
 
-    private nonisolated static let subjectKeywords: [String: [String]] = [
+    private nonisolated static let studySubjectKeywords: [String: [String]] = [
         "english": ["poem", "poetry", "novel", "theme", "character", "language", "essay", "author", "drama", "imagery"],
         "french": ["french", "bonjour", "verb", "grammar", "vocabulary", "translation", "tense"],
         "german": ["german", "verb", "grammar", "vocabulary", "translation", "tense"],

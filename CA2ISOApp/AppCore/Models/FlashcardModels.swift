@@ -51,7 +51,7 @@ enum FlashcardConfidence: String, CaseIterable, Hashable, Codable, Sendable {
 final class FlashcardSet {
     var title: String
     var sourceType: String
-    var subject: String
+    var studySubject: String
     var topic: String
     var rawText: String
     var aiGenerationMode: String
@@ -64,7 +64,7 @@ final class FlashcardSet {
     init(
         title: String,
         sourceType: String,
-        subject: String = "",
+        studySubject: String = "",
         topic: String = "",
         rawText: String,
         aiGenerationMode: String = "",
@@ -73,7 +73,7 @@ final class FlashcardSet {
     ) {
         self.title = title
         self.sourceType = sourceType
-        self.subject = subject
+        self.studySubject = studySubject
         self.topic = topic
         self.rawText = rawText
         self.aiGenerationMode = aiGenerationMode
@@ -190,7 +190,7 @@ extension FlashcardDraft: Identifiable, Hashable { }
 struct FlashcardDeckDraft: Sendable {
     var title: String
     var sourceType: String
-    var subject: String
+    var studySubject: String
     var topic: String
     var rawText: String
     var aiGenerationMode: String
@@ -200,7 +200,7 @@ struct FlashcardDeckDraft: Sendable {
     nonisolated init(
         title: String,
         sourceType: String,
-        subject: String,
+        studySubject: String,
         topic: String,
         rawText: String,
         aiGenerationMode: String = "",
@@ -209,7 +209,7 @@ struct FlashcardDeckDraft: Sendable {
     ) {
         self.title = title
         self.sourceType = sourceType
-        self.subject = subject
+        self.studySubject = studySubject
         self.topic = topic
         self.rawText = rawText
         self.aiGenerationMode = aiGenerationMode

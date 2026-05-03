@@ -44,7 +44,7 @@ struct CA2ISOAppApp: App {
                         case .signup: SignupView()
                         case .login: LoginView()
                         case .home: HomeView()
-                        case .subjectPicker: SubjectPickerView()
+                        case .studySubjectPicker: studySubjectPickerView()
                         case .flashcards: CreateFlashCardView()
                         case .flashcardReview: FlashcardReviewView()
                         case .studyGuide: CreateStudyGuideView()

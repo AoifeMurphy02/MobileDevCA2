@@ -128,25 +128,25 @@ struct FlashcardReviewView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Subject")
+                Text("studySubject")
                     .font(.subheadline.weight(.semibold))
-                TextField("Subject", text: $viewModel.flashcardDraftSubject)
+                TextField("studySubject", text: $viewModel.flashcardDraftstudySubject)
                     .textFieldStyle(.roundedBorder)
 
-                if !self.viewModel.subjectOptions.isEmpty {
+                if !self.viewModel.studySubjectOptions.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(self.viewModel.subjectOptions, id: \.self) { subject in
+                            ForEach(self.viewModel.studySubjectOptions, id: \.self) { studySubject in
                                 Button {
-                                    self.viewModel.flashcardDraftSubject = subject
+                                    self.viewModel.flashcardDraftstudySubject = studySubject
                                 } label: {
-                                    Text(subject)
+                                    Text(studySubject)
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(self.viewModel.flashcardDraftSubject == subject ? .white : Color(red: 0.25, green: 0.53, blue: 0.94))
+                                        .foregroundColor(self.viewModel.flashcardDraftstudySubject == studySubject ? .white : Color(red: 0.25, green: 0.53, blue: 0.94))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(
-                                            self.viewModel.flashcardDraftSubject == subject
+                                            self.viewModel.flashcardDraftstudySubject == studySubject
                                             ? Color(red: 0.25, green: 0.53, blue: 0.94)
                                             : Color(red: 0.94, green: 0.97, blue: 1.0)
                                         )
@@ -309,7 +309,7 @@ struct FlashcardReviewView: View {
         let deckDraft = FlashcardDeckDraft(
             title: viewModel.flashcardDraftTitle.isEmpty ? "New Deck" : viewModel.flashcardDraftTitle,
             sourceType: viewModel.flashcardDraftSourceType.isEmpty ? "Manual" : viewModel.flashcardDraftSourceType,
-            subject: viewModel.flashcardDraftSubject,
+            studySubject: viewModel.flashcardDraftstudySubject,
             topic: viewModel.flashcardDraftTopic,
             rawText: viewModel.flashcardDraftRawText,
             cards: viewModel.flashcardDraftCards // Ensure this array is passed!
@@ -352,7 +352,7 @@ struct FlashcardReviewView: View {
         let deckTitle = viewModel.flashcardDraftTitle.isEmpty ? "Untitled Deck" : viewModel.flashcardDraftTitle
         StudyNotificationManager.scheduleDraftReviewReminder(
             deckTitle: deckTitle,
-            subject: viewModel.flashcardDraftSubject,
+            studySubject: viewModel.flashcardDraftstudySubject,
             cardCount: viewModel.flashcardDraftCards.count
         )
     }

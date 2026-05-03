@@ -17,7 +17,7 @@ struct CreateFlashcardManualView: View {
     @State private var cards: [FlashcardDraft] = [FlashcardDraft(question: "", answer: "")]
     
     // Interaction State
-    @State private var selectedSubject = ""
+    @State private var selectedstudySubject = ""
     @State private var topic = ""
     @State private var flashcardTitle = ""
     @State private var errorMessage = ""
@@ -101,8 +101,8 @@ struct CreateFlashcardManualView: View {
         .navigationBarBackButtonHidden(true)
         .enableSwipeBack()
         .onAppear {
-            if selectedSubject.isEmpty {
-                selectedSubject = viewModel.defaultSubjectForCreation
+            if selectedstudySubject.isEmpty {
+                selectedstudySubject = viewModel.defaultstudySubjectForCreation
             }
         }
         .alert("Error", isPresented: $showErrorAlert) {
@@ -151,20 +151,20 @@ struct CreateFlashcardManualView: View {
             Text("Deck Details").font(.headline)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Subject").font(.subheadline.weight(.semibold))
-                TextField("e.g. Biology", text: $selectedSubject)
+                Text("studySubject").font(.subheadline.weight(.semibold))
+                TextField("e.g. Biology", text: $selectedstudySubject)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 
-                if !viewModel.subjectOptions.isEmpty {
+                if !viewModel.studySubjectOptions.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(viewModel.subjectOptions, id: \.self) { subject in
-                                Button { selectedSubject = subject } label: {
-                                    Text(subject)
+                            ForEach(viewModel.studySubjectOptions, id: \.self) { studySubject in
+                                Button { selectedstudySubject = studySubject } label: {
+                                    Text(studySubject)
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(selectedSubject == subject ? .white : .blue)
+                                        .foregroundColor(selectedstudySubject == studySubject ? .white : .blue)
                                         .padding(.horizontal, 12).padding(.vertical, 8)
-                                        .background(selectedSubject == subject ? Color.blue : Color.blue.opacity(0.05))
+                                        .background(selectedstudySubject == studySubject ? Color.blue : Color.blue.opacity(0.05))
                                         .clipShape(Capsule())
                                 }
                             }
@@ -190,7 +190,7 @@ struct CreateFlashcardManualView: View {
         let newSet = FlashcardSet(
             title: flashcardTitle,
             sourceType: "Manual Entry",
-            subject: selectedSubject,
+            studySubject: selectedstudySubject,
             topic: topic,
             rawText: "Manual Input"
         )
@@ -292,6 +292,6 @@ struct ManualStatPill: View {
 
 #Preview {
     let model = AppViewModel()
-    model.chosenSubjects = ["English", "Maths"]
+    model.chosenstudySubjects = ["English", "Maths"]
     return CreateFlashcardManualView().environment(model)
 }

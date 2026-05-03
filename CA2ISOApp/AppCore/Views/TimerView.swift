@@ -1,7 +1,12 @@
 import SwiftUI
+import SwiftData
 
 struct TimerView: View {
     
+    
+    @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.modelContext) private var modelContext
+    @Query var allUsers: [User]
     @State private var timerVM = TimerViewModel()
     
     @State private var showTimePicker = false
@@ -13,21 +18,21 @@ struct TimerView: View {
                 Spacer()
                 
                 VStack(spacing: 5) {
-                                    Text(timerVM.formatTime())
-                                        .font(.system(size: 80, weight: .bold, design: .rounded))
-                                        .onTapGesture {
-                                            // Only allow changing time if timer isn't running
-                                            if !timerVM.isActive {
-                                                showTimePicker = true
-                                            }
-                                        }
-                                    
-                                    if !timerVM.isActive {
-                                        Text("Tap to set time")
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
+                    Text(timerVM.formatTime())
+                        .font(.system(size: 80, weight: .bold, design: .rounded))
+                        .onTapGesture {
+                            // Only allow changing time if timer isn't running
+                            if !timerVM.isActive {
+                                showTimePicker = true
+                            }
+                        }
+                    
+                    if !timerVM.isActive {
+                        Text("Tap to set time")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
                 
                 
                 Image("owl_mascot")
@@ -59,37 +64,43 @@ struct TimerView: View {
         .navigationBarBackButtonHidden(true)
         .enableSwipeBack()
         .sheet(isPresented: $showTimePicker) {
-                    VStack(spacing: 20) {
-                        Text("Set Study Duration")
-                            .font(.headline)
-                            .padding(.top)
-                        
-                        Picker("Minutes", selection: $selectedMinutes) {
-                            ForEach(1...60, id: \.self) { min in
-                                Text("\(min) minutes").tag(min)
-                            }
-                        }
-                        .pickerStyle(.wheel) // the iOS wheel look
-                        
-                        Button(action: {
-                            timerVM.setDuration(minutes: selectedMinutes)
-                            showTimePicker = false
-                        }) {
-                            Text("Set Timer")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.blue)
-                                .clipShape(Capsule())
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom)
+            VStack(spacing: 20) {
+                Text("Set Study Duration")
+                    .font(.headline)
+                    .padding(.top)
+                
+                Picker("Minutes", selection: $selectedMinutes) {
+                    ForEach(1...60, id: \.self) { min in
+                        Text("\(min) minutes").tag(min)
                     }
-                    .presentationDetents([.height(300)]) // Small pop-up height
                 }
+                .pickerStyle(.wheel) // the iOS wheel look
+                
+                Button(action: {
+                    timerVM.setDuration(minutes: selectedMinutes)
+                    showTimePicker = false
+                }) {
+                    Text("Set Timer")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .presentationDetents([.height(300)]) // Small pop-up height
+        }
+        .onAppear {
+            timerVM.onComplete = {
+                print("DEBUG: Timer hit zero. Recording study activity...")
+                viewModel.recordStudyActivity(modelContext: modelContext, users: allUsers)
             }
         }
+    }
+}
 
 #Preview {
     NavigationStack {

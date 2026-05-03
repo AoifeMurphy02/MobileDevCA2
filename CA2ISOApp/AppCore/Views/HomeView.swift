@@ -4,16 +4,17 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.scenePhase) private var scenePhase
+    @Query var allUsers: [User]
     @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
     @State private var progressSnapshots: [String: FlashcardStudyProgressSnapshot] = [:]
 
     private var visibleSets: [FlashcardSet] {
-        guard !viewModel.activeSubject.isEmpty else {
+        guard !viewModel.activestudySubject.isEmpty else {
             return flashcardSets
         }
 
         return flashcardSets.filter { set in
-            set.subject == viewModel.activeSubject
+            set.studySubject == viewModel.activestudySubject
         }
     }
 
@@ -22,7 +23,7 @@ struct HomeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         headerCard
-                        subjectSection
+                        studySubjectSection
                         
                         // Flashcardsfirst
                         librarySection
@@ -39,18 +40,26 @@ struct HomeView: View {
             .background(Color(red: 0.97, green: 0.99, blue: 1.0).ignoresSafeArea())
             .navigationBarBackButtonHidden(true)
             .onAppear {
-                if viewModel.activeSubject.isEmpty, let firstSubject = viewModel.subjectOptions.first {
-                    viewModel.selectSubject(firstSubject)
-                }
+                        // Find the user in the database and update the UI
+                        if let email = viewModel.currentUserEmail,
+                           let currentUser = allUsers.first(where: { $0.email.lowercased() == email.lowercased() }) {
+                            viewModel.streakCount = currentUser.streakCount
+                        }
 
-                refreshProgressSnapshots()
-            }
-            .onChange(of: scenePhase) { _, newValue in
-                if newValue == .active {
-                    refreshProgressSnapshots()
+                        // Default to the first studySubject
+                        if viewModel.activestudySubject.isEmpty, let firststudySubject = viewModel.studySubjectOptions.first {
+                            viewModel.selectstudySubject(firststudySubject)
+                        }
+
+                        // Load the card snapshots
+                        refreshProgressSnapshots()
+                    }
+                    .onChange(of: scenePhase) { _, newValue in
+                        if newValue == .active {
+                            refreshProgressSnapshots()
+                        }
+                    }
                 }
-            }
-        }
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
@@ -96,7 +105,7 @@ struct HomeView: View {
         .clipShape(RoundedRectangle(cornerRadius: 26))
     }
 
-    private var subjectSection: some View {
+    private var studySubjectSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Study Spaces")
@@ -105,18 +114,18 @@ struct HomeView: View {
                 Spacer()
 
                 Button {
-                    viewModel.navPath.append(NavTarget.subjectPicker)
+                    viewModel.navPath.append(NavTarget.studySubjectPicker)
                 } label: {
                     Label("Edit", systemImage: "slider.horizontal.3")
                         .font(.subheadline.weight(.semibold))
                 }
             }
 
-            if viewModel.subjectOptions.isEmpty {
+            if viewModel.studySubjectOptions.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("No subjects selected yet.")
+                    Text("No studySubjects selected yet.")
                         .font(.headline)
-                    Text("Choose subjects to organize your decks and improve AI suggestions.")
+                    Text("Choose studySubjects to organize your decks and improve AI suggestions.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -127,19 +136,19 @@ struct HomeView: View {
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        SubjectFilterChip(
+                        studySubjectFilterChip(
                             title: "All",
-                            isSelected: viewModel.activeSubject.isEmpty
+                            isSelected: viewModel.activestudySubject.isEmpty
                         ) {
-                            viewModel.selectSubject("")
+                            viewModel.selectstudySubject("")
                         }
 
-                        ForEach(viewModel.subjectOptions, id: \.self) { subject in
-                            SubjectFilterChip(
-                                title: subject,
-                                isSelected: viewModel.activeSubject == subject
+                        ForEach(viewModel.studySubjectOptions, id: \.self) { studySubject in
+                            studySubjectFilterChip(
+                                title: studySubject,
+                                isSelected: viewModel.activestudySubject == studySubject
                             ) {
-                                viewModel.selectSubject(subject)
+                                viewModel.selectstudySubject(studySubject)
                             }
                         }
                     }
@@ -160,7 +169,7 @@ struct HomeView: View {
             if shouldShowDraftProgressCard {
                 PendingDraftProgressCard(
                     title: viewModel.flashcardDraftTitle,
-                    subject: viewModel.flashcardDraftSubject,
+                    studySubject: viewModel.flashcardDraftstudySubject,
                     cardCount: viewModel.flashcardDraftCards.count
                 ) {
                     viewModel.navPath.append(NavTarget.flashcardReview)
@@ -198,7 +207,7 @@ struct HomeView: View {
     @ViewBuilder
     private var librarySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(viewModel.activeSubject.isEmpty ? "Recent Decks" : "\(viewModel.activeSubject) Decks")
+            Text(viewModel.activestudySubject.isEmpty ? "Recent Decks" : "\(viewModel.activestudySubject) Decks")
                 .font(.headline)
 
             if visibleSets.isEmpty {
@@ -233,23 +242,23 @@ struct HomeView: View {
     }
 
     private var headerDescription: String {
-        if viewModel.activeSubject.isEmpty {
+        if viewModel.activestudySubject.isEmpty {
             return "See your recent decks, jump into smart flashcard creation, and keep your study routine moving."
         }
 
-        return "You are currently focused on \(viewModel.activeSubject). Create, review, and study decks organized under this subject."
+        return "You are currently focused on \(viewModel.activestudySubject). Create, review, and study decks organized under this studySubject."
     }
 
     private var emptyLibraryTitle: String {
-        if viewModel.activeSubject.isEmpty {
+        if viewModel.activestudySubject.isEmpty {
             return "You have not created any decks yet."
         }
 
-        return "No decks saved for \(viewModel.activeSubject) yet."
+        return "No decks saved for \(viewModel.activestudySubject) yet."
     }
 
     private var emptyLibraryDescription: String {
-        if viewModel.activeSubject.isEmpty {
+        if viewModel.activestudySubject.isEmpty {
             return "Start with AI flashcards to turn your notes into a study deck."
         }
 
@@ -259,28 +268,28 @@ struct HomeView: View {
     private var shouldShowDraftProgressCard: Bool {
         guard viewModel.hasFlashcardDraft else { return false }
 
-        if viewModel.activeSubject.isEmpty {
+        if viewModel.activestudySubject.isEmpty {
             return true
         }
 
-        let draftSubject = viewModel.flashcardDraftSubject.trimmingCharacters(in: .whitespacesAndNewlines)
-        return draftSubject.isEmpty || draftSubject == viewModel.activeSubject
+        let draftstudySubject = viewModel.flashcardDraftstudySubject.trimmingCharacters(in: .whitespacesAndNewlines)
+        return draftstudySubject.isEmpty || draftstudySubject == viewModel.activestudySubject
     }
 
     private var progressSectionTitle: String {
-        if viewModel.activeSubject.isEmpty {
+        if viewModel.activestudySubject.isEmpty {
             return "Study Progress"
         }
 
-        return "\(viewModel.activeSubject) Progress"
+        return "\(viewModel.activestudySubject) Progress"
     }
 
     private var progressSectionDescription: String {
-        if viewModel.activeSubject.isEmpty {
+        if viewModel.activestudySubject.isEmpty {
             return "See what still needs review, what is already learnt, and what is waiting to be saved."
         }
 
-        return "Track saved deck progress for \(viewModel.activeSubject), including reviewed, learnt, and still-learning cards."
+        return "Track saved deck progress for \(viewModel.activestudySubject), including reviewed, learnt, and still-learning cards."
     }
 
     private func refreshProgressSnapshots() {
@@ -293,7 +302,7 @@ struct HomeView: View {
     }
 }
 
-private struct SubjectFilterChip: View {
+private struct studySubjectFilterChip: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
@@ -322,7 +331,7 @@ private struct SubjectFilterChip: View {
 
 private struct PendingDraftProgressCard: View {
     let title: String
-    let subject: String
+    let studySubject: String
     let cardCount: Int
     let action: () -> Void
 
@@ -362,8 +371,8 @@ private struct PendingDraftProgressCard: View {
 
     private var draftSubtitle: String {
         let resolvedTitle = title.isEmpty ? "Untitled Deck" : title
-        let subjectPrefix = subject.isEmpty ? "" : "\(subject) • "
-        return "\(subjectPrefix)\(resolvedTitle) • \(cardCount) cards still need review before you save"
+        let studySubjectPrefix = studySubject.isEmpty ? "" : "\(studySubject) • "
+        return "\(studySubjectPrefix)\(resolvedTitle) • \(cardCount) cards still need review before you save"
     }
 }
 
@@ -418,7 +427,7 @@ private struct DeckProgressCard: View {
     }
 
     private var deckSubtitle: String {
-        let details = [flashcardSet.subject, flashcardSet.sourceType]
+        let details = [flashcardSet.studySubject, flashcardSet.sourceType]
             .filter { !$0.isEmpty }
             .joined(separator: " • ")
 

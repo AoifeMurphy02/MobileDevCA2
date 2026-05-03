@@ -33,7 +33,7 @@ struct SignupView: View {
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                         .padding(.top, 30)
 
-                    Text("Create your account to organize subjects, build flashcard decks, and keep your study streak going.")
+                    Text("Create your account to organize studySubjects, build flashcard decks, and keep your study streak going.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -156,7 +156,7 @@ struct SignupView: View {
         .toolbar(.hidden, for: .navigationBar)
         .enableSwipeBack()
         .navigationDestination(isPresented: $viewModel.isSignedUp) {
-            SubjectPickerView()
+            studySubjectPickerView()
         }
     }
 }

@@ -161,8 +161,8 @@ struct LoginView: View {
         .enableSwipeBack()
         .navigationDestination(isPresented: $viewModel.isLoggedIn) {
             // Checks if user is new or returning
-            if viewModel.chosenSubjects.isEmpty {
-                SubjectPickerView()
+            if viewModel.chosenstudySubjects.isEmpty {
+                studySubjectPickerView()
             } else {
                 HomeView()
             }

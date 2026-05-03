@@ -179,7 +179,7 @@ struct FlashcardSetDetailView: View {
 
                     FlashcardStudySummary(
                         title: flashcardSet.title,
-                        subject: flashcardSet.subject,
+                        studySubject: flashcardSet.studySubject,
                         sourceType: flashcardSet.sourceType,
                         aiGenerationMode: flashcardSet.aiGenerationMode,
                         aiModelID: flashcardSet.aiModelID,
@@ -375,7 +375,7 @@ struct FlashcardSetDetailView: View {
     private func recordStudyActivity() {
         StudyNotificationManager.recordStudyActivity(
             deckTitle: flashcardSet.title,
-            subject: flashcardSet.subject
+            studySubject: flashcardSet.studySubject
         )
     }
 
@@ -408,7 +408,7 @@ struct FlashcardSetDetailView: View {
         StudyNotificationManager.scheduleResumeStudy(
             deckID: notificationDeckID,
             deckTitle: flashcardSet.title,
-            subject: flashcardSet.subject,
+            studySubject: flashcardSet.studySubject,
             progressText: progressText
         )
     }
@@ -488,7 +488,7 @@ private struct StudyActionButtonLabel: View {
 
 private struct FlashcardStudySummary: View {
     let title: String
-    let subject: String
+    let studySubject: String
     let sourceType: String
     let aiGenerationMode: String
     let aiModelID: String
@@ -532,7 +532,7 @@ private struct FlashcardStudySummary: View {
     }
 
     private var summaryLine: String {
-        [subject, sourceType]
+        [studySubject, sourceType]
             .filter { !$0.isEmpty }
             .joined(separator: " • ")
     }
