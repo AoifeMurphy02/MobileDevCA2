@@ -111,6 +111,7 @@ enum FlashcardImportService {
 
     nonisolated static func buildSet(
         title: String,
+        ownerEmail: String = "",
         studyArea: String,
         topic: String,
         sourceType: String,
@@ -128,7 +129,7 @@ enum FlashcardImportService {
             preferredstudyArea: preferredstudyArea
         )
 
-        return try buildSet(from: draftDeck)
+        return try buildSet(from: draftDeck, ownerEmail: ownerEmail)
     }
 
     nonisolated static func buildDraftDeck(
@@ -170,21 +171,22 @@ enum FlashcardImportService {
             preferredstudyArea: preferredstudyArea
         )
 
-        guard let provider = FlashcardAISettingsStore.configuredProvider() else {
+        guard let configuredProvider = FlashcardAISettingsStore.configuredProvider() else {
             return localDraftDeck
         }
 
         do {
             let cloudSuggestion = try await generateCloudSuggestion(
-                using: provider,
+                using: configuredProvider.provider,
+                providerKind: configuredProvider.kind,
                 from: localDraftDeck
             )
 
             return mergeCloudSuggestion(
                 cloudSuggestion,
                 into: localDraftDeck,
-                providerKind: provider.providerKind,
-                providerModelID: provider.providerModelID
+                providerKind: configuredProvider.kind,
+                providerModelID: configuredProvider.modelID
             )
         } catch {
             print("Advanced AI flashcard fallback: \(error.localizedDescription)")
@@ -258,7 +260,7 @@ enum FlashcardImportService {
         )
     }
 
-    nonisolated static func buildSet(from draftDeck: FlashcardDeckDraft) throws -> FlashcardSet {
+    nonisolated static func buildSet(from draftDeck: FlashcardDeckDraft, ownerEmail: String = "") throws -> FlashcardSet {
         let sanitizedCards = sanitizedDrafts(draftDeck.cards, sourceText: draftDeck.rawText)
         guard !sanitizedCards.isEmpty else {
             throw FlashcardImportError.emptyContent
@@ -283,6 +285,7 @@ enum FlashcardImportService {
 
         let flashcardSet = FlashcardSet(
             title: resolvedTitle,
+            ownerEmail: ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
             sourceType: resolvedSourceType,
             studyArea: resolvedstudyArea,
             topic: resolvedTopic,
@@ -358,11 +361,12 @@ enum FlashcardImportService {
 
     private nonisolated static func generateCloudSuggestion(
         using provider: any FlashcardLLMProvider,
+        providerKind: String,
         from localDraftDeck: FlashcardDeckDraft
     ) async throws -> FlashcardCloudDeckSuggestion {
         let focusedRequests = focusedCloudGenerationRequests(
             from: localDraftDeck,
-            providerKind: provider.providerKind
+            providerKind: providerKind
         )
 
         if focusedRequests.count >= 2 {
@@ -401,7 +405,7 @@ enum FlashcardImportService {
         return try await provider.generateDeckSuggestion(
             from: wholeDocumentCloudRequest(
                 from: localDraftDeck,
-                providerKind: provider.providerKind
+                providerKind: providerKind
             )
         )
     }
