@@ -12,12 +12,15 @@ struct HomeView: View {
 
     // Logic to filter the deck library based on the selected study space
     private var visibleSets: [FlashcardSet] {
-        guard !viewModel.activestudyArea.isEmpty else {
-            return flashcardSets
+        let ownedSets = flashcardSets.filter { set in
+            set.ownerEmail.lowercased() == (viewModel.currentUserEmail ?? "").lowercased()
         }
 
-        return flashcardSets.filter { set in
-            // Match the property name in your FlashcardSet model
+        guard !viewModel.activestudyArea.isEmpty else {
+            return ownedSets
+        }
+
+        return ownedSets.filter { set in
             set.studyArea == viewModel.activestudyArea
         }
     }
@@ -96,7 +99,7 @@ struct HomeView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.white)
 
-                    Text("\(flashcardSets.count) decks saved")
+                    Text("\(visibleSets.count) decks saved")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.78))
                 }
