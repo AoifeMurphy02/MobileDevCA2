@@ -119,7 +119,7 @@ struct FlashcardDeckAssistantView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(AppTheme.surface)
     }
 
     private var chatView: some View {
@@ -145,7 +145,7 @@ struct FlashcardDeckAssistantView: View {
                     }
                     .padding(18)
                 }
-                .background(Color(red: 0.98, green: 0.99, blue: 1.0))
+                .background(AppTheme.background)
                 .onChange(of: messages.count) { _, _ in
                     if let lastMessage = messages.last {
                         withAnimation(.easeOut(duration: 0.2)) {
@@ -179,7 +179,7 @@ struct FlashcardDeckAssistantView: View {
                 }
             }
             .padding(18)
-            .background(Color.white)
+            .background(AppTheme.surface)
         }
     }
 
