@@ -67,7 +67,7 @@ struct StartView: View {
                             .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
-                            .background(Color.white)
+                            .background(AppTheme.surface)
                             .clipShape(Capsule())
                     }
 
