@@ -80,6 +80,22 @@ struct FlashcardAISettings: Sendable {
     }
 }
 
+struct ConfiguredFlashcardProvider: Sendable {
+    let provider: any FlashcardLLMProvider
+    let kind: String
+    let modelID: String
+
+    nonisolated init(
+        provider: any FlashcardLLMProvider,
+        kind: String,
+        modelID: String
+    ) {
+        self.provider = provider
+        self.kind = kind
+        self.modelID = modelID
+    }
+}
+
 enum FlashcardAISettingsError: LocalizedError {
     case keychainSaveFailed(OSStatus)
 
@@ -177,14 +193,30 @@ enum FlashcardAISettingsStore {
         }
     }
 
-    nonisolated static func configuredProvider() -> (any FlashcardLLMProvider)? {
+    nonisolated static func configuredProvider() -> ConfiguredFlashcardProvider? {
         switch currentMode() {
         case .local:
             return nil
         case .appleIntelligence:
-            return AppleIntelligenceFlashcardService.configuredProvider()
+            guard let provider = AppleIntelligenceFlashcardService.configuredProvider() else {
+                return nil
+            }
+
+            return ConfiguredFlashcardProvider(
+                provider: provider,
+                kind: "apple-intelligence",
+                modelID: "apple.foundation-model"
+            )
         case .openAI:
-            return OpenAIFlashcardService.configuredProvider()
+            guard let provider = OpenAIFlashcardService.configuredProvider() else {
+                return nil
+            }
+
+            return ConfiguredFlashcardProvider(
+                provider: provider,
+                kind: "openai",
+                modelID: currentModelOption().rawValue
+            )
         }
     }
 
