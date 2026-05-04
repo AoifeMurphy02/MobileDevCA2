@@ -337,4 +337,9 @@ class AppViewModel {
             print("DEBUG: Streak updated to \(self.streakCount) for \(email)")
         }
     }
+    func goHome() {
+        var path = NavigationPath()
+        path.append(NavTarget.home)
+        self.navPath = path
+    }
 }

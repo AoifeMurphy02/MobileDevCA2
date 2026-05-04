@@ -97,7 +97,12 @@ struct FlashcardSetDetailView: View {
                     },
                     starredAction: starredCardIDs.isEmpty || activeRound == .starredOnly ? nil : {
                         startRound(.starredOnly)
-                    }
+                    },
+                    finishAction: {
+                             
+                        viewModel.goHome()
+                           }
+                    
                 )
                 .padding(24)
             } else if let currentCard {
@@ -612,6 +617,7 @@ private struct FlashcardSessionCompleteView: View {
     let restartAction: () -> Void
     let reviewAction: (() -> Void)?
     let starredAction: (() -> Void)?
+    let finishAction: () -> Void
 
     var body: some View {
         VStack(spacing: 22) {
@@ -679,6 +685,12 @@ private struct FlashcardSessionCompleteView: View {
                         )
                 }
             }
+            Button(action: finishAction) {
+                            Text("Done")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 10)
+                        }
 
             Spacer()
         }
