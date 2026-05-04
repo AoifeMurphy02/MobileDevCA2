@@ -25,6 +25,12 @@ struct CreateFlashCardView: View {
     @State private var isImporting = false
     @State private var importProgressMessage = "Analyzing your notes..."
 
+    private var visibleFlashcardSets: [FlashcardSet] {
+        flashcardSets.filter { set in
+            set.ownerEmail.lowercased() == (viewModel.currentUserEmail ?? "").lowercased()
+        }
+    }
+
     var body: some View {
         @Bindable var viewModel = viewModel
 
@@ -234,7 +240,7 @@ struct CreateFlashCardView: View {
 
     @ViewBuilder
     private var savedSetsSection: some View {
-        if flashcardSets.isEmpty {
+        if visibleFlashcardSets.isEmpty {
             ContentUnavailableView(
                 "No Flashcard Sets Yet",
                 systemImage: "square.stack.3d.up.slash",
@@ -248,7 +254,7 @@ struct CreateFlashCardView: View {
                     .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                     .padding(.top, 6)
 
-                ForEach(flashcardSets.prefix(8)) { flashcardSet in
+                ForEach(visibleFlashcardSets.prefix(8)) { flashcardSet in
                     NavigationLink(destination: FlashcardSetDetailView(flashcardSet: flashcardSet)) {
                         FlashcardSetCard(flashcardSet: flashcardSet)
                     }
