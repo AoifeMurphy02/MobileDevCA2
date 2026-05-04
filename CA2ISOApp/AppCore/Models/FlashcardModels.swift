@@ -50,6 +50,7 @@ enum FlashcardConfidence: String, CaseIterable, Hashable, Codable, Sendable {
 @Model
 final class FlashcardSet {
     var title: String
+    var ownerEmail: String
     var sourceType: String
     var studyArea: String
     var topic: String
@@ -63,6 +64,7 @@ final class FlashcardSet {
 
     init(
         title: String,
+        ownerEmail: String = "",
         sourceType: String,
         studyArea: String = "",
         topic: String = "",
@@ -72,6 +74,7 @@ final class FlashcardSet {
         createdAt: Date = .now
     ) {
         self.title = title
+        self.ownerEmail = ownerEmail
         self.sourceType = sourceType
         self.studyArea = studyArea
         self.topic = topic
