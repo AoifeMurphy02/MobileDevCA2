@@ -8,7 +8,6 @@ import Foundation
 import Observation
 import SwiftData
 import SwiftUI
-import AuthenticationServices
 import GoogleSignIn
 
 
@@ -29,6 +28,9 @@ enum NavTarget: Hashable {
 
 @Observable
 class AppViewModel {
+    private nonisolated static let persistedEmailKey = "auth.persisted.email"
+    private nonisolated static let persistedGoogleUserIDKey = "auth.persisted.googleUserID"
+    private nonisolated static let shouldRestoreSessionKey = "auth.persisted.shouldRestore"
     
     var navPath = NavigationPath()
     
@@ -42,6 +44,7 @@ class AppViewModel {
     var chosenstudyAreas: [String] = []
     var activestudyArea = ""
     var currentUserEmail: String?
+    var rememberMePreference = UserDefaults.standard.bool(forKey: shouldRestoreSessionKey)
     //hardcoded for now
     var streakCount: Int = 2
     
@@ -63,6 +66,7 @@ class AppViewModel {
     
     
     var pendingNavigation: NavTarget? = nil
+    private var didAttemptSessionRestore = false
 
     var hasFlashcardDraft: Bool {
         !flashcardDraftCards.isEmpty
@@ -82,16 +86,33 @@ class AppViewModel {
     
     //  save the user
     func signUpUser(modelContext: ModelContext) {
-        guard !email.isEmpty, !password.isEmpty, hasAgreedToTerms else {
-            print("Error: Missing information")
+        let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanEmail.isEmpty else {
+            loginError = "Please enter your email."
+            return
+        }
+
+        guard !trimmedPassword.isEmpty else {
+            loginError = "Please enter your password."
+            return
+        }
+
+        guard hasAgreedToTerms else {
+            loginError = "Please accept the Terms & Conditions before signing up."
             return
         }
 
         loginError = ""
-        
-        // Clean the email before saving
-        let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        let newUser = User(email: cleanEmail, password: password)
+
+        let existingUsers = (try? modelContext.fetch(FetchDescriptor<User>())) ?? []
+        if existingUsers.contains(where: { $0.email.lowercased() == cleanEmail }) {
+            loginError = "An account with this email already exists."
+            return
+        }
+
+        let newUser = User(email: cleanEmail, password: trimmedPassword)
         
         // Insert into memory
         modelContext.insert(newUser)
@@ -100,8 +121,7 @@ class AppViewModel {
         do {
             
             try modelContext.save()
-            self.currentUserEmail = cleanEmail // Set the session immediately
-            applyChosenstudyAreas([])
+            completeAuthenticatedSession(for: newUser, shouldRestoreSession: true)
             print("SUCCESS: User \(cleanEmail) saved to SwiftData!")
             
             // 3. Double Check: Verify the save worked right now
@@ -118,17 +138,28 @@ class AppViewModel {
     
     
     // searches SwiftData for a matching user
-    func loginUser(users: [User]) {
+    func loginUser(users: [User], rememberSession: Bool) {
         print("Users found in database: \(users.count)")
         loginError = ""
+        rememberMePreference = rememberSession
         
         let cleanEmail = email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
         print("Searching for cleaned email: [\(cleanEmail)]")
+
+        guard !cleanEmail.isEmpty else {
+            self.loginError = "Please enter your email."
+            return
+        }
+
+        guard !trimmedPassword.isEmpty else {
+            self.loginError = "Please enter your password."
+            return
+        }
         
         if let foundUser = users.first(where: { $0.email.lowercased() == cleanEmail }) {
-            if foundUser.password == password {
-                self.currentUserEmail = foundUser.email // Remember the user
-                applyChosenstudyAreas(foundUser.savedstudyAreas)
+            if foundUser.password == trimmedPassword {
+                completeAuthenticatedSession(for: foundUser, shouldRestoreSession: rememberSession)
                 self.isLoggedIn = true
             }
             else {
@@ -228,49 +259,30 @@ class AppViewModel {
 
         return orderedstudyAreas
     }
-        
-        //  fix to demo due to no Xcode Capability
-        func mockAppleSignIn(modelContext: ModelContext) {
-            let mockEmail = "aoife_apple@demo.ie"
-            print("DEBUG: Executing Apple Sign-In Bypass for \(mockEmail)")
-            
-            self.currentUserEmail = mockEmail
-           
-            
-          
-            let newUser = User(email: mockEmail, appleUserID: "mock_id_12345")
-            modelContext.insert(newUser)
-            
-            // moves the screen
-            DispatchQueue.main.async {
-                self.isLoggedIn = true
-                self.isSignedUp = true
-            }
+
+    func restorePersistedSession(users: [User]) -> NavTarget? {
+        guard UserDefaults.standard.bool(forKey: Self.shouldRestoreSessionKey) else {
+            didAttemptSessionRestore = true
+            return nil
         }
 
-        // real apple login 
-        func handleAppleSignIn(result: Result<ASAuthorization, Error>, modelContext: ModelContext) {
-            switch result {
-            case .success(let auth):
-                if let appleIDCredential = auth.credential as? ASAuthorizationAppleIDCredential {
-                    let userId = appleIDCredential.user
-                    let email = appleIDCredential.email ?? "AppleUser@test.com"
-                    
-                    self.currentUserEmail = email
-                    let newUser = User(email: email, appleUserID: userId)
-                    modelContext.insert(newUser)
-                    
-                    DispatchQueue.main.async {
-                        self.isLoggedIn = true
-                        self.isSignedUp = true
-                    }
-                }
-            case .failure(let error):
-                print("Apple Auth failed: \(error.localizedDescription)")
-                self.loginError = "Sign in with Apple failed."
-            }
+        guard !didAttemptSessionRestore else { return nil }
+
+        if users.isEmpty {
+            return nil
         }
-    
+
+        didAttemptSessionRestore = true
+
+        guard let user = restoredUser(from: users) else {
+            clearPersistedSession()
+            return nil
+        }
+
+        completeAuthenticatedSession(for: user, shouldRestoreSession: true)
+        return user.savedstudyAreas.isEmpty ? .studyAreaPicker : .home
+    }
+
     func configureGoogleSignIn() {
         let config = GIDConfiguration(clientID: "246535979151-p94puseklqtr84m06go44e96bf354go8.apps.googleusercontent.com")
         GIDSignIn.sharedInstance.configuration = config
@@ -291,55 +303,113 @@ class AppViewModel {
         GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { result, error in
             if let error = error {
                 print("Google Login Error: \(error.localizedDescription)")
+                self.loginError = "Google sign-in failed."
                 return
             }
             
             guard let user = result?.user else { return }
             
-            let email = user.profile?.email ?? ""
-            
-            self.currentUserEmail = email
-            
-            let newUser = User(email: email, googleUserID: user.userID)
-            modelContext.insert(newUser)
-            
-            DispatchQueue.main.async {
-                self.isLoggedIn = true
+            let email = user.profile?.email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let existingUsers = (try? modelContext.fetch(FetchDescriptor<User>())) ?? []
+            let matchedUser = existingUsers.first {
+                $0.googleUserID == user.userID || (!email.isEmpty && $0.email.lowercased() == email)
+            } ?? User(email: email, googleUserID: user.userID)
+
+            if matchedUser.modelContext == nil {
+                modelContext.insert(matchedUser)
+            }
+
+            matchedUser.googleUserID = user.userID
+
+            do {
+                try modelContext.save()
+                self.completeAuthenticatedSession(for: matchedUser, shouldRestoreSession: true)
+
+                DispatchQueue.main.async {
+                    self.isLoggedIn = true
+                }
+            } catch {
+                self.loginError = "Could not finish Google sign-in."
             }
         }
     }
     func recordStudyActivity(modelContext: ModelContext, users: [User]) {
-        // Id the current user
-        guard let email = currentUserEmail?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) else { return }
-        
+        guard let email = currentUserEmail?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) else {
+            return
+        }
+
         if let user = users.first(where: { $0.email.lowercased() == email }) {
             let calendar = Calendar.current
             let now = Date.now
-            
-            // Prevent double-counting if they study multiple times in one day
+
             if let lastDate = user.lastActivityDate, calendar.isDateInToday(lastDate) {
                 self.streakCount = user.streakCount
                 return
             }
-            
-            // Increment if they studied yesterday, otherwise start/reset to 1
+
             if let lastDate = user.lastActivityDate, calendar.isDateInYesterday(lastDate) {
                 user.streakCount += 1
             } else {
                 user.streakCount = 1
             }
-            
-            // Update the Model and persistent store
+
             user.lastActivityDate = now
             self.streakCount = user.streakCount
-            
+
             try? modelContext.save()
             print("DEBUG: Streak updated to \(self.streakCount) for \(email)")
         }
     }
+
     func goHome() {
         var path = NavigationPath()
         path.append(NavTarget.home)
         self.navPath = path
+    }
+
+    private func completeAuthenticatedSession(for user: User, shouldRestoreSession: Bool) {
+        currentUserEmail = user.email
+        applyChosenstudyAreas(user.savedstudyAreas)
+        rememberMePreference = shouldRestoreSession
+        loginError = ""
+
+        if shouldRestoreSession {
+            persistSession(for: user)
+        } else {
+            clearPersistedSession()
+        }
+    }
+
+    private func persistSession(for user: User) {
+        let defaults = UserDefaults.standard
+        defaults.set(user.email, forKey: Self.persistedEmailKey)
+        defaults.set(user.googleUserID, forKey: Self.persistedGoogleUserIDKey)
+        defaults.set(true, forKey: Self.shouldRestoreSessionKey)
+    }
+
+    private func clearPersistedSession() {
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: Self.persistedEmailKey)
+        defaults.removeObject(forKey: Self.persistedGoogleUserIDKey)
+        defaults.set(false, forKey: Self.shouldRestoreSessionKey)
+    }
+
+    private func restoredUser(from users: [User]) -> User? {
+        let defaults = UserDefaults.standard
+        let persistedGoogleUserID = defaults.string(forKey: Self.persistedGoogleUserIDKey)
+        let persistedEmail = defaults.string(forKey: Self.persistedEmailKey)?
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let persistedGoogleUserID,
+           let matchedUser = users.first(where: { $0.googleUserID == persistedGoogleUserID }) {
+            return matchedUser
+        }
+
+        guard let persistedEmail else {
+            return nil
+        }
+
+        return users.first { $0.email.lowercased() == persistedEmail }
     }
 }
