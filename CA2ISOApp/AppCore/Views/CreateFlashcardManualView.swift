@@ -189,6 +189,7 @@ struct CreateFlashcardManualView: View {
         // Create the persistent FlashcardSet (The Model)
         let newSet = FlashcardSet(
             title: flashcardTitle,
+            ownerEmail: (viewModel.currentUserEmail ?? "").lowercased(),
             sourceType: "Manual Entry",
             studyArea: selectedstudyArea,
             topic: topic,
