@@ -211,7 +211,7 @@ struct FlashcardSetDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(AppTheme.background.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .enableSwipeBack()
         .onAppear {
@@ -498,7 +498,7 @@ private struct FlashcardStudyCard: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 24)
-                .fill(showAnswer ? Color(red: 0.86, green: 0.92, blue: 1.0) : Color(red: 0.47, green: 0.67, blue: 0.95))
+                .fill(showAnswer ? AppTheme.secondarySurface : Color(red: 0.47, green: 0.67, blue: 0.95))
                 .shadow(color: .black.opacity(0.08), radius: 18, y: 10)
 
             VStack(spacing: 18) {
@@ -561,7 +561,7 @@ private struct FlashcardStudySummary: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(AppTheme.text)
 
             Text(summaryLine)
                 .font(.subheadline)
@@ -627,7 +627,7 @@ private struct FlashcardCardInsightPanel: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(red: 0.98, green: 0.99, blue: 1.0))
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
