@@ -46,7 +46,7 @@ struct CreatePracticeTestView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(Color.white)
+            .background(AppTheme.surface)
 
             // NAV BAR
             CustomNavBar(selectedTab: 1) // Plus tab is active
@@ -73,7 +73,7 @@ struct TestActionButton: View {
                 
                 Spacer()
             }
-            .foregroundColor(.black)
+            .foregroundColor(AppTheme.text)
             .padding(.vertical, 18)
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity)
@@ -82,7 +82,7 @@ struct TestActionButton: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
             )
-            .background(Color.white)
+            .background(AppTheme.surface)
             .cornerRadius(12)
         }
     }
