@@ -5,10 +5,8 @@ import SwiftUI
 struct studyAreaPickerView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
-    @Query var allUsers: [User]
 
     @State private var selectedstudyAreas: Set<String> = []
-    @State private var navigateToHome = false
     @State private var studyAreas = [
         "English", "French", "German", "Spanish", "Mathematics",
         "Physics", "Biology", "Chemistry", "Computer Science",
@@ -114,7 +112,7 @@ struct studyAreaPickerView: View {
 
                         if !viewModel.studyAreaOptions.isEmpty {
                             Button("Keep Existing studyAreas") {
-                                navigateToHome = true
+                                viewModel.goHome()
                             }
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
@@ -132,12 +130,9 @@ struct studyAreaPickerView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .enableSwipeBack()
+        .disableSwipeBack()
         .onAppear {
             syncSelectedstudyAreas()
-        }
-        .navigationDestination(isPresented: $navigateToHome) {
-            HomeView()
         }
     }
 
@@ -181,9 +176,8 @@ struct studyAreaPickerView: View {
         if let firststudyArea = orderedSelection.first {
             viewModel.selectstudyArea(firststudyArea)
         }
-        viewModel.persiststudyAreasToDatabase(modelContext: modelContext, users: allUsers)
-
-        navigateToHome = true
+        viewModel.persiststudyAreasToDatabase(modelContext: modelContext)
+        viewModel.goHome()
     }
 }
 
