@@ -38,7 +38,7 @@ struct studyAreaPickerView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Choose Your studyAreas")
                             .font(.system(size: 30, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                                .foregroundColor(AppTheme.primary)
 
                         Text("studyAreas act like study spaces. They organize your decks, power AI suggestions, and make the home screen easier to understand.")
                             .font(.subheadline)
@@ -55,14 +55,20 @@ struct studyAreaPickerView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Add a custom studyArea")
                             .font(.headline)
+                            .foregroundColor(AppTheme.text)
                             .padding(.horizontal, 26)
 
                         HStack(spacing: 12) {
                             TextField("Type a studyArea name", text: $newstudyAreaName)
                                 .padding(14)
+                                .foregroundColor(AppTheme.text)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14)
-                                        .fill(Color.gray.opacity(0.08))
+                                        .fill(AppTheme.secondarySurface)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(AppTheme.subtleBorder, lineWidth: 1)
                                 )
                                 .textInputAutocapitalization(.words)
 
@@ -105,7 +111,7 @@ struct studyAreaPickerView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
-                                .background(selectedstudyAreas.isEmpty ? Color.gray : Color(red: 0.11, green: 0.49, blue: 0.95))
+                                .background(selectedstudyAreas.isEmpty ? Color.gray : AppTheme.primary)
                                 .clipShape(Capsule())
                         }
                         .disabled(selectedstudyAreas.isEmpty)
@@ -115,7 +121,7 @@ struct studyAreaPickerView: View {
                                 viewModel.goHome()
                             }
                             .font(.subheadline.weight(.semibold))
-                            .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                            .foregroundColor(AppTheme.primary)
                         }
                     }
                     .padding(.horizontal, 30)
@@ -123,7 +129,7 @@ struct studyAreaPickerView: View {
                     .padding(.bottom, 34)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.white)
+                .background(AppTheme.surface)
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
             .ignoresSafeArea(edges: .bottom)
@@ -188,11 +194,11 @@ private struct studyAreaSelectionChip: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(isSelected ? .white : Color(red: 0.11, green: 0.49, blue: 0.95))
+                .foregroundColor(isSelected ? .white : AppTheme.primary)
 
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundColor(isSelected ? .white : .black)
+                .foregroundColor(isSelected ? .white : AppTheme.text)
 
             Spacer(minLength: 0)
         }
@@ -201,7 +207,7 @@ private struct studyAreaSelectionChip: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(isSelected ? Color(red: 0.11, green: 0.49, blue: 0.95) : Color.gray.opacity(0.08))
+                .fill(isSelected ? AppTheme.primary : AppTheme.secondarySurface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
