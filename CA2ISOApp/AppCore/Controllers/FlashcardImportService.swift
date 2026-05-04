@@ -109,6 +109,23 @@ enum FlashcardImportService {
         )
     }
 
+    nonisolated static func importScannedImages(
+        _ images: [UIImage],
+        title: String = "Scanned Notes",
+        sourceType: String = "Scanned Document"
+    ) async throws -> ImportedFlashcardContent {
+        guard !images.isEmpty else {
+            throw FlashcardImportError.imageLoadFailed
+        }
+
+        let text = try await extractText(from: images)
+        return ImportedFlashcardContent(
+            title: title,
+            sourceType: sourceType,
+            text: text
+        )
+    }
+
     nonisolated static func buildSet(
         title: String,
         ownerEmail: String = "",

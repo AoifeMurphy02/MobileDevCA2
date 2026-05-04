@@ -6,22 +6,28 @@
 //
 
 import Foundation
+import AVFoundation
 import PhotosUI
 import SwiftData
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 struct CreateFlashCardView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.openURL) private var openURL
     @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
 
-    @State private var showScanImporter = false
+    @State private var showDocumentScanner = false
     @State private var showFileImporter = false
     @State private var showPasteTextSheet = false
     @State private var showAISettings = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var importErrorMessage = ""
     @State private var showImportAlert = false
+    @State private var cameraAlertMessage = ""
+    @State private var showCameraPermissionAlert = false
+    @State private var showCameraSettingsAction = false
     @State private var isImporting = false
     @State private var importProgressMessage = "Analyzing your notes..."
 
@@ -54,7 +60,7 @@ struct CreateFlashCardView: View {
 
                         VStack(spacing: 16) {
                             FlashcardActionButton(icon: "camera", title: "Scan document") {
-                                showScanImporter = true
+                                beginDocumentScan()
                             }
 
                             FlashcardActionButton(icon: "paperclip", title: "Select file") {
@@ -104,12 +110,21 @@ struct CreateFlashCardView: View {
         .sheet(isPresented: $showAISettings) {
             FlashcardAISettingsView()
         }
-        .fileImporter(
-            isPresented: $showScanImporter,
-            allowedContentTypes: [.pdf, .image],
-            allowsMultipleSelection: false
-        ) { result in
-            handleImportedFile(result, useScannerLabel: true)
+        .sheet(isPresented: $showDocumentScanner) {
+            DocumentScannerView(
+                onComplete: { images in
+                    Task {
+                        await importScannedImages(images)
+                    }
+                },
+                onCancel: {
+                    showDocumentScanner = false
+                },
+                onError: { message in
+                    showDocumentScanner = false
+                    presentError(message)
+                }
+            )
         }
         .fileImporter(
             isPresented: $showFileImporter,
@@ -130,6 +145,17 @@ struct CreateFlashCardView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(importErrorMessage)
+        }
+        .alert("Camera Access Needed", isPresented: $showCameraPermissionAlert) {
+            if showCameraSettingsAction {
+                Button("Open Settings") {
+                    openAppSettings()
+                }
+            }
+
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(cameraAlertMessage)
         }
     }
 
@@ -278,6 +304,41 @@ struct CreateFlashCardView: View {
     }
 
     @MainActor
+    private func beginDocumentScan() {
+        guard DocumentScannerView.isSupported else {
+            cameraAlertMessage = "Document scanning is not available on this device."
+            showCameraSettingsAction = false
+            showCameraPermissionAlert = true
+            return
+        }
+
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            showDocumentScanner = true
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                Task { @MainActor in
+                    if granted {
+                        showDocumentScanner = true
+                    } else {
+                        cameraAlertMessage = "Camera access was denied. Turn it on in Settings if you want to scan documents."
+                        showCameraSettingsAction = true
+                        showCameraPermissionAlert = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            cameraAlertMessage = "Allow camera access in Settings to scan documents into flashcards."
+            showCameraSettingsAction = true
+            showCameraPermissionAlert = true
+        @unknown default:
+            cameraAlertMessage = "Camera access is not available right now."
+            showCameraSettingsAction = false
+            showCameraPermissionAlert = true
+        }
+    }
+
+    @MainActor
     private func importFile(_ url: URL, useScannerLabel: Bool) async {
         do {
             setImportState(isLoading: true, message: "Reading your file...")
@@ -290,6 +351,42 @@ struct CreateFlashCardView: View {
                 } else {
                     return try await FlashcardImportService.importFile(from: url)
                 }
+            }.value
+
+            setImportState(isLoading: true, message: activeDeckBuildMessage)
+            let draftDeck: FlashcardDeckDraft = try await Task.detached(priority: .userInitiated) {
+                try await FlashcardImportService.buildDraftDeck(
+                    title: importedContent.title,
+                    studyArea: "",
+                    topic: "",
+                    sourceType: importedContent.sourceType,
+                    text: importedContent.text,
+                    availablestudyAreas: availablestudyAreas,
+                    preferredstudyArea: preferredstudyArea
+                )
+            }.value
+
+            viewModel.loadFlashcardDraft(draftDeck)
+            importErrorMessage = ""
+            isImporting = false
+            viewModel.navPath.append(NavTarget.flashcardReview)
+        } catch {
+            isImporting = false
+            presentError(error.localizedDescription)
+        }
+    }
+
+    @MainActor
+    private func importScannedImages(_ images: [UIImage]) async {
+        do {
+            setImportState(isLoading: true, message: "Reading text from your scan...")
+            showDocumentScanner = false
+
+            let availablestudyAreas = viewModel.studyAreaOptions
+            let preferredstudyArea = viewModel.defaultstudyAreaForCreation
+
+            let importedContent = try await Task.detached(priority: .userInitiated) {
+                try await FlashcardImportService.importScannedImages(images)
             }.value
 
             setImportState(isLoading: true, message: activeDeckBuildMessage)
@@ -405,6 +502,14 @@ struct CreateFlashCardView: View {
     private func presentError(_ message: String) {
         importErrorMessage = message
         showImportAlert = true
+    }
+
+    private func openAppSettings() {
+        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+
+        openURL(settingsURL)
     }
 
     private var usesCloudAI: Bool {
