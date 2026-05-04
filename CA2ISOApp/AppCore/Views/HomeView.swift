@@ -3,26 +3,28 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
     
     @Query var allUsers: [User]
     @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
     
+    @State private var showProfileSheet = false
+    @State private var dashboardFlashcardSets: [FlashcardSet] = []
     @State private var progressSnapshots: [String: FlashcardStudyProgressSnapshot] = [:]
 
     // Logic to filter the deck library based on the selected study space
     private var visibleSets: [FlashcardSet] {
-        let ownedSets = flashcardSets.filter { set in
-            set.ownerEmail.lowercased() == (viewModel.currentUserEmail ?? "").lowercased()
-        }
+        FlashcardSetVisibility.visibleSets(
+            dashboardSets,
+            currentUserEmail: viewModel.activeSessionEmailForUI,
+            totalUserCount: allUsers.count,
+            activeStudyArea: viewModel.activestudyArea
+        )
+    }
 
-        guard !viewModel.activestudyArea.isEmpty else {
-            return ownedSets
-        }
-
-        return ownedSets.filter { set in
-            set.studyArea == viewModel.activestudyArea
-        }
+    private var dashboardSets: [FlashcardSet] {
+        dashboardFlashcardSets.isEmpty ? flashcardSets : dashboardFlashcardSets
     }
 
     var body: some View {
@@ -56,24 +58,39 @@ struct HomeView: View {
         }
         .background(Color(red: 0.97, green: 0.99, blue: 1.0).ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
+        .disableSwipeBack()
         .sheet(isPresented: showSheet) {
             CreateResourceView().presentationDetents([.medium])
         }
+        .sheet(isPresented: $showProfileSheet) {
+            ProfileSheetView(
+                email: viewModel.activeSessionEmailForUI ?? "",
+                streakCount: viewModel.streakCount,
+                studyAreaCount: viewModel.studyAreaOptions.count,
+                logoutAction: {
+                    showProfileSheet = false
+                    viewModel.logout()
+                }
+            )
+            .presentationDetents([.medium])
+        }
         .onAppear {
-            // sync the streak
-            if let email = viewModel.currentUserEmail,
-               let currentUser = allUsers.first(where: { $0.email.lowercased() == email.lowercased() }) {
-                viewModel.streakCount = currentUser.streakCount
-            }
-
-            if viewModel.activestudyArea.isEmpty, let first = viewModel.studyAreaOptions.first {
-                viewModel.selectstudyArea(first)
-            }
-
+            viewModel.syncCurrentUserState(modelContext: modelContext)
+            refreshDashboardDecks()
             refreshProgressSnapshots()
         }
         .onChange(of: scenePhase) { _, newValue in
-            if newValue == .active { refreshProgressSnapshots() }
+            if newValue == .active {
+                viewModel.syncCurrentUserState(modelContext: modelContext)
+                refreshDashboardDecks()
+                refreshProgressSnapshots()
+            }
+        }
+        .onChange(of: flashcardSets.count) { _, _ in
+            refreshDashboardDecks()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .flashcardStudyProgressDidChange)) { _ in
+            refreshProgressSnapshots()
         }
     }
     
@@ -95,6 +112,14 @@ struct HomeView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 6) {
+                    Button {
+                        showProfileSheet = true
+                    } label: {
+                        Image(systemName: "person.crop.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                    }
+
                     Label("\(viewModel.streakCount) day streak", systemImage: "flame.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.white)
@@ -195,7 +220,12 @@ struct HomeView: View {
 
             if !visibleSets.isEmpty {
                 ForEach(visibleSets.prefix(6)) { set in
-                    DeckProgressCard(flashcardSet: set, snapshot: progressSnapshot(for: set))
+                    NavigationLink {
+                        FlashcardSetDetailView(flashcardSet: set, shouldResumeProgress: true)
+                    } label: {
+                        DeckProgressCard(flashcardSet: set, snapshot: progressSnapshot(for: set))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -204,7 +234,7 @@ struct HomeView: View {
     // MARK: - Logic Helpers
     
     private var homeTitle: String {
-        if let email = viewModel.currentUserEmail { return email.components(separatedBy: "@").first ?? email }
+        if let email = viewModel.activeSessionEmailForUI { return email.components(separatedBy: "@").first ?? email }
         return "Study Hub"
     }
 
@@ -213,16 +243,84 @@ struct HomeView: View {
     }
 
     private var shouldShowDraftProgressCard: Bool {
-        viewModel.hasFlashcardDraft && (viewModel.activestudyArea.isEmpty || viewModel.flashcardDraftstudyArea == viewModel.activestudyArea)
+        guard viewModel.hasFlashcardDraft else { return false }
+
+        return viewModel.activestudyArea.isEmpty ||
+            viewModel.flashcardDraftstudyArea.isEmpty ||
+            viewModel.flashcardDraftstudyArea == viewModel.activestudyArea
+    }
+
+    private func progressSnapshot(for set: FlashcardSet) -> FlashcardStudyProgressSnapshot {
+        let deckID = FlashcardStudyProgressStore.deckID(for: set)
+        return progressSnapshots[deckID] ?? FlashcardStudyProgressStore.snapshot(for: set)
+    }
+
+    private func refreshDashboardDecks() {
+        var descriptor = FetchDescriptor<FlashcardSet>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 80
+        dashboardFlashcardSets = (try? modelContext.fetch(descriptor)) ?? flashcardSets
+        print("DEBUG: Home fetched \(dashboardFlashcardSets.count) saved decks from SwiftData.")
     }
 
     private func refreshProgressSnapshots() {
         progressSnapshots = FlashcardStudyProgressStore.loadAllSnapshots()
     }
+}
 
-    private func progressSnapshot(for set: FlashcardSet) -> FlashcardStudyProgressSnapshot {
-        let deckID = FlashcardStudyProgressStore.deckID(for: set)
-        return progressSnapshots[deckID] ?? FlashcardStudyProgressSnapshot.empty(for: set)
+private struct ProfileSheetView: View {
+    let email: String
+    let streakCount: Int
+    let studyAreaCount: Int
+    let logoutAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Profile")
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+
+            VStack(alignment: .leading, spacing: 12) {
+                ProfileInfoRow(title: "Signed in as", value: email.isEmpty ? "Unknown account" : email)
+                ProfileInfoRow(title: "Study spaces", value: "\(studyAreaCount)")
+                ProfileInfoRow(title: "Current streak", value: "\(streakCount) days")
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(red: 0.97, green: 0.99, blue: 1.0))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+
+            Button(role: .destructive, action: logoutAction) {
+                Text("Log Out")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.red)
+                    .clipShape(Capsule())
+            }
+
+            Spacer()
+        }
+        .padding(24)
+    }
+}
+
+private struct ProfileInfoRow: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.secondary)
+
+            Text(value)
+                .font(.headline)
+                .foregroundColor(.black)
+        }
     }
 }
 

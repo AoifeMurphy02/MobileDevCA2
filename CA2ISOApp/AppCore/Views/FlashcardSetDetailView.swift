@@ -31,9 +31,14 @@ struct FlashcardSetDetailView: View {
     @Environment(\.scenePhase) private var scenePhase
     
     @Environment(AppViewModel.self) private var viewModel
-    @Query var allUsers: [User]
 
     let flashcardSet: FlashcardSet
+    let shouldResumeProgress: Bool
+
+    init(flashcardSet: FlashcardSet, shouldResumeProgress: Bool = false) {
+        self.flashcardSet = flashcardSet
+        self.shouldResumeProgress = shouldResumeProgress
+    }
 
     @State private var activeRound: FlashcardStudyRound = .all
     @State private var studyCardIDs: [PersistentIdentifier] = []
@@ -213,7 +218,11 @@ struct FlashcardSetDetailView: View {
             StudyNotificationManager.cancelResumeStudy(for: notificationDeckID)
             StudyNotificationManager.cancelReviewReminder(for: notificationDeckID)
             guard studyCardIDs.isEmpty else { return }
-            startRound(.all, resetProgress: true)
+            if shouldResumeProgress {
+                restoreSavedProgressOrStartFresh()
+            } else {
+                startRound(.all, resetProgress: false)
+            }
         }
         .onDisappear {
             scheduleResumeReminderIfNeeded()
@@ -313,7 +322,7 @@ struct FlashcardSetDetailView: View {
         guard let currentCard else { return }
         reviewCardIDs.insert(currentCard.persistentModelID)
         masteredCardIDs.remove(currentCard.persistentModelID)
-        persistProgressSnapshot()
+        persistProgressSnapshot(currentCardIndex: nextCardIndexAfterCurrent)
         recordStudyActivity()
         moveToNextCard()
     }
@@ -322,9 +331,13 @@ struct FlashcardSetDetailView: View {
         guard let currentCard else { return }
         masteredCardIDs.insert(currentCard.persistentModelID)
         reviewCardIDs.remove(currentCard.persistentModelID)
-        persistProgressSnapshot()
+        persistProgressSnapshot(currentCardIndex: nextCardIndexAfterCurrent)
         recordStudyActivity()
         moveToNextCard()
+    }
+
+    private var nextCardIndexAfterCurrent: Int {
+        min(currentIndex + 1, max(activeCards.count - 1, 0))
     }
 
     private func moveToNextCard() {
@@ -340,7 +353,7 @@ struct FlashcardSetDetailView: View {
                 
             }
             print("DEBUG: Deck finished! Updating streak...")
-                    viewModel.recordStudyActivity(modelContext: modelContext, users: allUsers)
+                    viewModel.recordStudyActivity(modelContext: modelContext)
             finishSession()
         }
     }
@@ -381,6 +394,34 @@ struct FlashcardSetDetailView: View {
         case .starredOnly:
             return starredCardIDs
         }
+    }
+
+    private func restoreSavedProgressOrStartFresh() {
+        let snapshot = FlashcardStudyProgressStore.snapshot(for: flashcardSet)
+        studyCardIDs = cardIDs(for: .all)
+        masteredCardIDs = cardIDs(from: snapshot.learnedCardIndexes)
+        reviewCardIDs = cardIDs(from: snapshot.stillLearningCardIndexes)
+
+        if snapshot.reviewedCardCount >= activeCards.count, !activeCards.isEmpty {
+            currentIndex = max(activeCards.count - 1, 0)
+            sessionComplete = true
+        } else {
+            currentIndex = min(max(snapshot.currentCardIndex ?? 0, 0), max(activeCards.count - 1, 0))
+            sessionComplete = false
+        }
+
+        activeRound = .all
+        showAnswer = false
+        cardRotation = 0
+    }
+
+    private func cardIDs(from orderIndexes: [Int]?) -> Set<PersistentIdentifier> {
+        let requestedIndexes = Set(orderIndexes ?? [])
+        return Set(
+            orderedCards
+                .filter { requestedIndexes.contains($0.orderIndex) }
+                .map(\.persistentModelID)
+        )
     }
 
     private func recordStudyActivity() {
@@ -424,7 +465,7 @@ struct FlashcardSetDetailView: View {
         )
     }
 
-    private func persistProgressSnapshot() {
+    private func persistProgressSnapshot(currentCardIndex savedCurrentCardIndex: Int? = nil) {
         let learnedCount = masteredCardIDs.count
         let stillLearningCount = reviewCardIDs.count
 
@@ -432,8 +473,18 @@ struct FlashcardSetDetailView: View {
             for: flashcardSet,
             reviewedCardCount: learnedCount + stillLearningCount,
             learnedCardCount: learnedCount,
-            stillLearningCardCount: stillLearningCount
+            stillLearningCardCount: stillLearningCount,
+            currentCardIndex: savedCurrentCardIndex ?? currentIndex,
+            learnedCardIndexes: orderIndexes(for: masteredCardIDs),
+            stillLearningCardIndexes: orderIndexes(for: reviewCardIDs)
         )
+    }
+
+    private func orderIndexes(for cardIDs: Set<PersistentIdentifier>) -> [Int] {
+        orderedCards
+            .filter { cardIDs.contains($0.persistentModelID) }
+            .map(\.orderIndex)
+            .sorted()
     }
 }
 

@@ -57,6 +57,7 @@ struct FlashcardReviewView: View {
         }
         .onAppear {
             draftWasFinalized = false
+            viewModel.syncCurrentUserState(modelContext: modelContext)
             StudyNotificationManager.cancelDraftReviewReminder()
         }
         .onDisappear {
@@ -306,26 +307,55 @@ struct FlashcardReviewView: View {
             return
         }
 
+        let resolvedTitle = viewModel.flashcardDraftTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "New Deck"
+            : viewModel.flashcardDraftTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedStudyArea = viewModel.flashcardDraftstudyArea.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? viewModel.defaultstudyAreaForCreation
+            : viewModel.flashcardDraftstudyArea.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedSourceType = viewModel.flashcardDraftSourceType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "Manual"
+            : viewModel.flashcardDraftSourceType.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedOwnerEmail = viewModel.resolvedAuthenticatedEmail(modelContext: modelContext)
+
+        guard !resolvedOwnerEmail.isEmpty else {
+            self.errorMessage = "Please sign in again before saving this deck."
+            self.showErrorAlert = true
+            return
+        }
+
+        if viewModel.flashcardDraftstudyArea != resolvedStudyArea {
+            viewModel.flashcardDraftstudyArea = resolvedStudyArea
+        }
+
         let deckDraft = FlashcardDeckDraft(
-            title: viewModel.flashcardDraftTitle.isEmpty ? "New Deck" : viewModel.flashcardDraftTitle,
-            sourceType: viewModel.flashcardDraftSourceType.isEmpty ? "Manual" : viewModel.flashcardDraftSourceType,
-            studyArea: viewModel.flashcardDraftstudyArea,
+            title: resolvedTitle,
+            sourceType: resolvedSourceType,
+            studyArea: resolvedStudyArea,
             topic: viewModel.flashcardDraftTopic,
             rawText: viewModel.flashcardDraftRawText,
-            cards: viewModel.flashcardDraftCards // Ensure this array is passed!
+            aiGenerationMode: viewModel.flashcardDraftAIGenerationMode,
+            aiModelID: viewModel.flashcardDraftAIModelID,
+            cards: viewModel.flashcardDraftCards
         )
 
         do {
             // 2. Build and Insert
             let flashcardSet = try FlashcardImportService.buildSet(
                 from: deckDraft,
-                ownerEmail: viewModel.currentUserEmail ?? ""
+                ownerEmail: resolvedOwnerEmail
             )
             modelContext.insert(flashcardSet)
             
             // 3. Save to SQLite
             try modelContext.save()
-            print("SUCCESS: Saved deck with \(flashcardSet.cards.count) cards.")
+            FlashcardStudyProgressStore.updateProgress(
+                for: flashcardSet,
+                reviewedCardCount: 0,
+                learnedCardCount: 0,
+                stillLearningCardCount: 0
+            )
+            print("SUCCESS: Saved deck with \(flashcardSet.cards.count) cards. owner=\(flashcardSet.ownerEmail), studyArea=\(flashcardSet.studyArea)")
             draftWasFinalized = true
             StudyNotificationManager.cancelDraftReviewReminder()
 

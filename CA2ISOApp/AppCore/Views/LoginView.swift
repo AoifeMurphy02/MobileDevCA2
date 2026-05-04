@@ -13,7 +13,6 @@ struct LoginView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
     @State private var rememberMe = false
-    @Query var allUsers: [User]
 
     var body: some View {
        @Bindable var viewModel = viewModel
@@ -85,7 +84,7 @@ struct LoginView: View {
                     
                     // Main Sign In Button
                     Button(action: {
-                        viewModel.loginUser(users: allUsers, rememberSession: rememberMe)
+                        viewModel.loginUser(modelContext: modelContext, rememberCredentials: rememberMe)
                     }) {
                         HStack {
                             Spacer(); Text("Sign In"); Spacer()
@@ -134,17 +133,10 @@ struct LoginView: View {
             .ignoresSafeArea(edges: .bottom)
         }
         .navigationBarBackButtonHidden(true)
-        .enableSwipeBack()
-        .navigationDestination(isPresented: $viewModel.isLoggedIn) {
-            // Checks if user is new or returning
-            if viewModel.chosenstudyAreas.isEmpty {
-                studyAreaPickerView()
-            } else {
-                HomeView()
-            }
-        }
+        .disableSwipeBack()
         .onAppear {
             viewModel.loginError = ""
+            viewModel.loadRememberedCredentials()
             rememberMe = viewModel.rememberMePreference
         }
     }

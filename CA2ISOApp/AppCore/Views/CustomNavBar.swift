@@ -95,30 +95,47 @@ struct NavBarIcon: View {
 }
 
 private struct SwipeBackEnabler: UIViewControllerRepresentable {
+    let isEnabled: Bool
+
     func makeUIViewController(context: Context) -> SwipeBackHostingController {
         SwipeBackHostingController()
     }
 
     func updateUIViewController(_ uiViewController: SwipeBackHostingController, context: Context) {
-        uiViewController.enableSwipeBackIfPossible()
+        uiViewController.setSwipeBackEnabled(isEnabled)
     }
 }
 
 private final class SwipeBackHostingController: UIViewController {
+    private var isSwipeBackEnabled = true
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        enableSwipeBackIfPossible()
+        applySwipeBackState()
     }
 
-    func enableSwipeBackIfPossible() {
+    func setSwipeBackEnabled(_ isEnabled: Bool) {
+        isSwipeBackEnabled = isEnabled
+        applySwipeBackState()
+    }
+
+    private func applySwipeBackState() {
         guard let navigationController else { return }
-        navigationController.interactivePopGestureRecognizer?.isEnabled = true
-        navigationController.interactivePopGestureRecognizer?.delegate = nil
+
+        if isSwipeBackEnabled {
+            navigationController.interactivePopGestureRecognizer?.delegate = nil
+        }
+
+        navigationController.interactivePopGestureRecognizer?.isEnabled = isSwipeBackEnabled
     }
 }
 
 extension View {
     func enableSwipeBack() -> some View {
-        background(SwipeBackEnabler().frame(width: 0, height: 0))
+        background(SwipeBackEnabler(isEnabled: true).frame(width: 0, height: 0))
+    }
+
+    func disableSwipeBack() -> some View {
+        background(SwipeBackEnabler(isEnabled: false).frame(width: 0, height: 0))
     }
 }

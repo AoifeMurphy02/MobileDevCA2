@@ -3,6 +3,7 @@ import SwiftData
 
 struct StartView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.modelContext) private var modelContext
     @Query private var allUsers: [User]
     @State private var isAnimating = false
     @State private var didCheckSavedSession = false
@@ -102,7 +103,7 @@ struct StartView: View {
     private func attemptSessionRestore() {
         guard !didCheckSavedSession else { return }
 
-        guard let destination = viewModel.restorePersistedSession(users: allUsers) else {
+        guard let destination = viewModel.restorePersistedSession(modelContext: modelContext) else {
             return
         }
 
