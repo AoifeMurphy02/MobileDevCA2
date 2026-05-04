@@ -9,6 +9,18 @@ import Foundation
 import SwiftUI
 import UIKit
 
+enum AppTheme {
+    static let primary = Color(red: 0.11, green: 0.49, blue: 0.95)
+    static let primarySoft = Color(red: 0.25, green: 0.53, blue: 0.94)
+    static let background = Color(uiColor: .systemGroupedBackground)
+    static let surface = Color(uiColor: .systemBackground)
+    static let secondarySurface = Color(uiColor: .secondarySystemGroupedBackground)
+    static let text = Color(uiColor: .label)
+    static let secondaryText = Color(uiColor: .secondaryLabel)
+    static let subtleBorder = Color(uiColor: .separator).opacity(0.35)
+    static let navBackground = Color(uiColor: .secondarySystemGroupedBackground)
+}
+
 struct CustomNavBar: View {
     // This tells the bar which tab is currently selected
     // 0 = Home, 1 = Add, 2 = Clock
@@ -47,7 +59,7 @@ struct CustomNavBar: View {
 
                         Image(systemName: "plus")
                             .font(.title2)
-                            .foregroundColor(.black)
+                            .foregroundColor(AppTheme.text)
                     }
                 }
 
@@ -67,7 +79,7 @@ struct CustomNavBar: View {
             }
             .frame(height: 60)
             .background(
-                Color(red: 0.88, green: 0.94, blue: 1.0)
+                AppTheme.navBackground
                     .ignoresSafeArea(edges: .bottom)
             )
         }
@@ -89,7 +101,7 @@ struct NavBarIcon: View {
             Image(systemName: iconName)
                 .font(.title3)
                 .fontWeight(isSelected ? .bold : .regular)
-                .foregroundColor(.black)
+                .foregroundColor(AppTheme.text)
         }
     }
 }
