@@ -18,7 +18,7 @@ struct LoginView: View {
        @Bindable var viewModel = viewModel
         ZStack {
             // Background Blue
-            Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
+            AppTheme.primary.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Owl Image
@@ -36,41 +36,43 @@ struct LoginView: View {
                 VStack(spacing: 20) {
                     Text("Welcome Back!")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                        .foregroundColor(AppTheme.primary)
                         .padding(.top, 30)
 
                     Text("Sign in to open your study spaces, saved decks, and streak.")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.text)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 36)
                     
                     // Input Fields
                     Group {
                         HStack {
-                            Image(systemName: "envelope").foregroundColor(.gray)
+                            Image(systemName: "envelope").foregroundColor(AppTheme.primary)
                             TextField("Email", text: $viewModel.email)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled(true)
                                 .keyboardType(.emailAddress)
+                                .foregroundColor(AppTheme.text)
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+                        .background(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.subtleBorder))
                         
                         HStack {
-                            Image(systemName: "lock").foregroundColor(.gray)
+                            Image(systemName: "lock").foregroundColor(AppTheme.primary)
                             SecureField("Password", text: $viewModel.password)
-                            Image(systemName: "eye.slash").foregroundColor(.gray)
+                                .foregroundColor(AppTheme.text)
+                            Image(systemName: "eye.slash").foregroundColor(AppTheme.primary)
                         }
                         .padding()
-                        .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+                        .background(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.subtleBorder))
                     }
                     .padding(.horizontal, 30)
                     
                     // Remember Me Toggle
                     HStack {
                         Toggle(isOn: $rememberMe) {
-                            Text("Remember Me").font(.caption).foregroundColor(.gray)
+                            Text("Remember Me").font(.caption).foregroundColor(AppTheme.text)
                         }
                         .toggleStyle(LoginCheckboxStyle())
                         Spacer()
@@ -90,11 +92,11 @@ struct LoginView: View {
                             Spacer(); Text("Sign In"); Spacer()
                             Image(systemName: "arrow.right.circle.fill").font(.title2)
                         }
-                        .foregroundColor(.white).padding().background(Color(red: 0.11, green: 0.49, blue: 0.95)).clipShape(Capsule())
+                        .foregroundColor(.white).padding().background(AppTheme.primary).clipShape(Capsule())
                     }
                     .padding(.horizontal, 30)
                     
-                    Text("Or Continue With").font(.caption).foregroundColor(.gray)
+                    Text("Or Continue With").font(.caption).foregroundColor(AppTheme.text)
                     
                     // --- SOCIAL ICONS SECTION (FIXED) ---
                     HStack(spacing: 30) {
@@ -109,7 +111,7 @@ struct LoginView: View {
                                 // If SDK isn't set up, you can change this to .mockGoogleSignIn
                                 viewModel.handleGoogleSignIn(modelContext: modelContext)
                             }) {
-                                Circle().fill(Color.white.opacity(0.01))
+                                Circle().fill(AppTheme.surface.opacity(0.01))
                             }
                             .frame(width: 45, height: 45)
                             
@@ -119,15 +121,15 @@ struct LoginView: View {
                     // Link to Sign Up
                     NavigationLink(value: NavTarget.signup)  {
                         HStack(spacing: 4) {
-                            Text("Don't have an Account?").foregroundColor(.gray)
-                            Text("SIGN UP").fontWeight(.bold).foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                            Text("Don't have an Account?").foregroundColor(AppTheme.text)
+                            Text("SIGN UP").fontWeight(.bold).foregroundColor(AppTheme.primary)
                         }
                         .font(.caption)
                     }
                     .padding(.bottom, 40)
                 }
                 .frame(maxWidth: .infinity)
-                .background(Color.white)
+                .background(AppTheme.surface)
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
             .ignoresSafeArea(edges: .bottom)
@@ -147,7 +149,7 @@ struct LoginCheckboxStyle: ToggleStyle {
     func makeBody(configuration: Self.Configuration) -> some View {
         return HStack {
             Image(systemName: configuration.isOn ? "checkmark.square.fill" : "square")
-                .foregroundColor(configuration.isOn ? Color(red: 0.11, green: 0.49, blue: 0.95) : .gray)
+                .foregroundColor(configuration.isOn ? AppTheme.primary : AppTheme.text)
                 .onTapGesture { configuration.isOn.toggle() }
             configuration.label
         }
@@ -158,9 +160,10 @@ struct LoginSocialButton: View {
     var imageName: String
     var body: some View {
         Circle()
-            .fill(Color.white)
+            .fill(AppTheme.secondarySurface)
             .frame(width: 45, height: 45)
-            .shadow(color: .black.opacity(0.1), radius: 5)
+            .overlay(Circle().stroke(AppTheme.subtleBorder, lineWidth: 1))
+            .shadow(color: .black.opacity(0.16), radius: 5)
             .overlay(
                 Image(imageName)
                     .resizable()
