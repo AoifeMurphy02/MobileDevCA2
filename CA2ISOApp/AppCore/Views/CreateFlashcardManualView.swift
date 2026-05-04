@@ -13,18 +13,18 @@ struct CreateFlashcardManualView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
     
-    // 1. Array of cards for multi-card creation
+    // Array of cards for multi-card creation
     @State private var cards: [FlashcardDraft] = [FlashcardDraft(question: "", answer: "")]
     
     // Interaction State
-    @State private var selectedstudySubject = ""
+    @State private var selectedstudyArea = ""
     @State private var topic = ""
     @State private var flashcardTitle = ""
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
     
     var body: some View {
-        @Bindable var viewModel = viewModel
+       @Bindable var viewModel = viewModel
         
         ZStack(alignment: .bottom) {
             Color(red: 0.98, green: 0.99, blue: 1.0).ignoresSafeArea()
@@ -56,7 +56,7 @@ struct CreateFlashcardManualView: View {
                             }
                         }
                         
-                        // 3. ADD CARD BUTTON (+)
+                        //  ADD CARD BUTTON (+)
                         Button(action: {
                             withAnimation(.spring()) {
                                 cards.append(FlashcardDraft(question: "", answer: ""))
@@ -78,7 +78,7 @@ struct CreateFlashcardManualView: View {
                 }
             }
             
-            // 4. STICKY SAVE BUTTON AREA
+            // STICKY SAVE BUTTON AREA
             VStack(spacing: 0) {
                 Button(action: saveEntireDeck) {
                     Text("Save Full Deck")
@@ -101,8 +101,8 @@ struct CreateFlashcardManualView: View {
         .navigationBarBackButtonHidden(true)
         .enableSwipeBack()
         .onAppear {
-            if selectedstudySubject.isEmpty {
-                selectedstudySubject = viewModel.defaultstudySubjectForCreation
+            if selectedstudyArea.isEmpty {
+                selectedstudyArea = viewModel.defaultstudyAreaForCreation
             }
         }
         .alert("Error", isPresented: $showErrorAlert) {
@@ -151,20 +151,20 @@ struct CreateFlashcardManualView: View {
             Text("Deck Details").font(.headline)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("studySubject").font(.subheadline.weight(.semibold))
-                TextField("e.g. Biology", text: $selectedstudySubject)
+                Text("studyArea").font(.subheadline.weight(.semibold))
+                TextField("e.g. Biology", text: $selectedstudyArea)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                 
-                if !viewModel.studySubjectOptions.isEmpty {
+                if !viewModel.studyAreaOptions.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(viewModel.studySubjectOptions, id: \.self) { studySubject in
-                                Button { selectedstudySubject = studySubject } label: {
-                                    Text(studySubject)
+                            ForEach(viewModel.studyAreaOptions, id: \.self) { studyArea in
+                                Button { selectedstudyArea = studyArea } label: {
+                                    Text(studyArea)
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(selectedstudySubject == studySubject ? .white : .blue)
+                                        .foregroundColor(selectedstudyArea == studyArea ? .white : .blue)
                                         .padding(.horizontal, 12).padding(.vertical, 8)
-                                        .background(selectedstudySubject == studySubject ? Color.blue : Color.blue.opacity(0.05))
+                                        .background(selectedstudyArea == studyArea ? Color.blue : Color.blue.opacity(0.05))
                                         .clipShape(Capsule())
                                 }
                             }
@@ -190,7 +190,7 @@ struct CreateFlashcardManualView: View {
         let newSet = FlashcardSet(
             title: flashcardTitle,
             sourceType: "Manual Entry",
-            studySubject: selectedstudySubject,
+            studyArea: selectedstudyArea,
             topic: topic,
             rawText: "Manual Input"
         )
@@ -292,6 +292,6 @@ struct ManualStatPill: View {
 
 #Preview {
     let model = AppViewModel()
-    model.chosenstudySubjects = ["English", "Maths"]
+    model.chosenstudyAreas = ["English", "Maths"]
     return CreateFlashcardManualView().environment(model)
 }

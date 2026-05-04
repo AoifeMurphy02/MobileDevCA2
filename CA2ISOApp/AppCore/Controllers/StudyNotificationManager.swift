@@ -14,7 +14,7 @@ enum StudyNotificationManager {
     private nonisolated static let draftReviewIdentifier = "study.draft.review"
     private nonisolated static let lastStudyDateKey = "study.notifications.lastStudyDate"
     private nonisolated static let lastDeckTitleKey = "study.notifications.lastDeckTitle"
-    private nonisolated static let laststudySubjectKey = "study.notifications.laststudySubject"
+    private nonisolated static let laststudyAreaKey = "study.notifications.laststudyArea"
     private nonisolated static let reminderHour = 19
 
     nonisolated static func requestAuthorizationIfNeeded() {
@@ -42,7 +42,7 @@ enum StudyNotificationManager {
 
     nonisolated static func scheduleDraftReviewReminder(
         deckTitle: String,
-        studySubject: String,
+        studyArea: String,
         cardCount: Int,
         after timeInterval: TimeInterval = 15 * 60
     ) {
@@ -50,7 +50,7 @@ enum StudyNotificationManager {
 
         let content = UNMutableNotificationContent()
         content.title = "Finish reviewing \(deckTitle)"
-        content.body = draftReviewBody(deckTitle: deckTitle, studySubject: studySubject, cardCount: cardCount)
+        content.body = draftReviewBody(deckTitle: deckTitle, studyArea: studyArea, cardCount: cardCount)
         content.sound = .default
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
@@ -64,7 +64,7 @@ enum StudyNotificationManager {
     nonisolated static func scheduleResumeStudy(
         deckID: String,
         deckTitle: String,
-        studySubject: String,
+        studyArea: String,
         progressText: String,
         after timeInterval: TimeInterval = 20 * 60
     ) {
@@ -73,7 +73,7 @@ enum StudyNotificationManager {
         let content = UNMutableNotificationContent()
         content.title = "Resume \(deckTitle)"
         content.body = progressText.isEmpty
-            ? resumeFallbackBody(studySubject: studySubject)
+            ? resumeFallbackBody(studyArea: studyArea)
             : progressText
         content.sound = .default
 
@@ -122,11 +122,11 @@ enum StudyNotificationManager {
         )
     }
 
-    nonisolated static func recordStudyActivity(deckTitle: String, studySubject: String) {
+    nonisolated static func recordStudyActivity(deckTitle: String, studyArea: String) {
         let defaults = UserDefaults.standard
         defaults.set(Date(), forKey: lastStudyDateKey)
         defaults.set(deckTitle.trimmingCharacters(in: .whitespacesAndNewlines), forKey: lastDeckTitleKey)
-        defaults.set(studySubject.trimmingCharacters(in: .whitespacesAndNewlines), forKey: laststudySubjectKey)
+        defaults.set(studyArea.trimmingCharacters(in: .whitespacesAndNewlines), forKey: laststudyAreaKey)
         refreshDailyStudyReminder()
     }
 
@@ -139,11 +139,11 @@ enum StudyNotificationManager {
         }
 
         let deckTitle = defaults.string(forKey: lastDeckTitleKey) ?? ""
-        let studySubject = defaults.string(forKey: laststudySubjectKey) ?? ""
+        let studyArea = defaults.string(forKey: laststudyAreaKey) ?? ""
 
         let content = UNMutableNotificationContent()
         content.title = "Keep your study streak going"
-        content.body = dailyReminderBody(deckTitle: deckTitle, studySubject: studySubject)
+        content.body = dailyReminderBody(deckTitle: deckTitle, studyArea: studyArea)
         content.sound = .default
 
         guard let nextReminderDate = nextDailyReminderDate(from: lastStudyDate) else {
@@ -179,17 +179,17 @@ enum StudyNotificationManager {
         "study.review.\(deckID)"
     }
 
-    private nonisolated static func resumeFallbackBody(studySubject: String) -> String {
-        if studySubject.isEmpty {
+    private nonisolated static func resumeFallbackBody(studyArea: String) -> String {
+        if studyArea.isEmpty {
             return "Jump back into your flashcard session while it is still fresh."
         }
 
-        return "Jump back into your \(studySubject) flashcard session while it is still fresh."
+        return "Jump back into your \(studyArea) flashcard session while it is still fresh."
     }
 
-    private nonisolated static func dailyReminderBody(deckTitle: String, studySubject: String) -> String {
-        if !studySubject.isEmpty {
-            return "A short \(studySubject) review today can keep your progress moving."
+    private nonisolated static func dailyReminderBody(deckTitle: String, studyArea: String) -> String {
+        if !studyArea.isEmpty {
+            return "A short \(studyArea) review today can keep your progress moving."
         }
 
         if !deckTitle.isEmpty {
@@ -199,13 +199,13 @@ enum StudyNotificationManager {
         return "Take a few minutes to review your flashcards today."
     }
 
-    private nonisolated static func draftReviewBody(deckTitle: String, studySubject: String, cardCount: Int) -> String {
+    private nonisolated static func draftReviewBody(deckTitle: String, studyArea: String, cardCount: Int) -> String {
         let deckSummary = cardCount == 1
             ? "1 card still needs review"
             : "\(cardCount) cards still need review"
 
-        if !studySubject.isEmpty {
-            return "\(deckSummary) in your \(studySubject) deck. Save it when you are ready to start studying."
+        if !studyArea.isEmpty {
+            return "\(deckSummary) in your \(studyArea) deck. Save it when you are ready to start studying."
         }
 
         return "\(deckSummary) in \(deckTitle). Save the deck when you are ready to start studying."

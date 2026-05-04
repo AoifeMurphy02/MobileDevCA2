@@ -9,7 +9,7 @@ import Foundation
 
 struct FlashcardCloudGenerationRequest: Sendable {
     let title: String
-    let studySubject: String
+    let studyArea: String
     let topic: String
     let sourceType: String
     let text: String
@@ -19,7 +19,7 @@ struct FlashcardCloudGenerationRequest: Sendable {
 
     nonisolated init(
         title: String,
-        studySubject: String,
+        studyArea: String,
         topic: String,
         sourceType: String,
         text: String,
@@ -28,7 +28,7 @@ struct FlashcardCloudGenerationRequest: Sendable {
         documentContext: String = ""
     ) {
         self.title = title
-        self.studySubject = studySubject
+        self.studyArea = studyArea
         self.topic = topic
         self.sourceType = sourceType
         self.text = text
@@ -62,13 +62,13 @@ struct FlashcardCloudCardSuggestion: Sendable {
 
 struct FlashcardCloudDeckSuggestion: Sendable {
     let title: String
-    let studySubject: String
+    let studyArea: String
     let topic: String
     let cards: [FlashcardCloudCardSuggestion]
 
-    nonisolated init(title: String, studySubject: String, topic: String, cards: [FlashcardCloudCardSuggestion]) {
+    nonisolated init(title: String, studyArea: String, topic: String, cards: [FlashcardCloudCardSuggestion]) {
         self.title = title
-        self.studySubject = studySubject
+        self.studyArea = studyArea
         self.topic = topic
         self.cards = cards
     }
@@ -103,7 +103,7 @@ struct FlashcardDeckAssistantCardContext: Sendable {
 
 struct FlashcardDeckAssistantContext: Sendable {
     let title: String
-    let studySubject: String
+    let studyArea: String
     let topic: String
     let sourceType: String
     let rawText: String
@@ -111,14 +111,14 @@ struct FlashcardDeckAssistantContext: Sendable {
 
     nonisolated init(
         title: String,
-        studySubject: String,
+        studyArea: String,
         topic: String,
         sourceType: String,
         rawText: String,
         cards: [FlashcardDeckAssistantCardContext]
     ) {
         self.title = title
-        self.studySubject = studySubject
+        self.studyArea = studyArea
         self.topic = topic
         self.sourceType = sourceType
         self.rawText = rawText
@@ -242,7 +242,7 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
 
         return FlashcardCloudDeckSuggestion(
             title: cleanupInlineText(payload.title),
-            studySubject: cleanupInlineText(payload.studySubject),
+            studyArea: cleanupInlineText(payload.studyArea),
             topic: cleanupInlineText(payload.topic),
             cards: Array(cards.prefix(max(min(request.requestedCardCount, 18), 1)))
         )
@@ -343,7 +343,7 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
 
         Requested deck details:
         - Title: \(fallbackValue(request.title, placeholder: "Smart Flashcards"))
-        - studySubject: \(fallbackValue(request.studySubject, placeholder: "Use the source"))
+        - studyArea: \(fallbackValue(request.studyArea, placeholder: "Use the source"))
         - Topic: \(fallbackValue(request.topic, placeholder: "Infer from the source"))
         - Source type: \(fallbackValue(request.sourceType, placeholder: "Study material"))
         - Focus section: \(fallbackValue(request.focusTitle, placeholder: "Whole document"))
@@ -390,7 +390,7 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
         - supporting_quote must come from the source text, not from your own wording.
 
         Deck title: \(fallbackValue(deck.title, placeholder: "Untitled Deck"))
-        Deck studySubject: \(fallbackValue(deck.studySubject, placeholder: "No studySubject"))
+        Deck studyArea: \(fallbackValue(deck.studyArea, placeholder: "No studyArea"))
         Deck topic: \(fallbackValue(deck.topic, placeholder: "No topic"))
         Deck source type: \(fallbackValue(deck.sourceType, placeholder: "No source type"))
 
@@ -671,7 +671,7 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
             "additionalProperties": false,
             "properties": [
                 "title": ["type": "string"],
-                "studySubject": ["type": "string"],
+                "studyArea": ["type": "string"],
                 "topic": ["type": "string"],
                 "cards": [
                     "type": "array",
@@ -697,7 +697,7 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
                     ]
                 ]
             ],
-            "required": ["title", "studySubject", "topic", "cards"]
+            "required": ["title", "studyArea", "topic", "cards"]
         ]
     }
 
@@ -722,7 +722,7 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
         let jsonObject = try JSONSerialization.jsonObject(with: data)
         guard let json = jsonObject as? [String: Any],
               let title = json["title"] as? String,
-              let studySubject = json["studySubject"] as? String,
+              let studyArea = json["studyArea"] as? String,
               let topic = json["topic"] as? String,
               let rawCards = json["cards"] as? [[String: Any]] else {
             throw OpenAIFlashcardError.decodingFailed
@@ -746,7 +746,7 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
             )
         }
 
-        return CloudDeckPayload(title: title, studySubject: studySubject, topic: topic, cards: cards)
+        return CloudDeckPayload(title: title, studyArea: studyArea, topic: topic, cards: cards)
     }
 
     private nonisolated func parseAssistantPayload(from data: Data) throws -> AssistantPayload {
@@ -797,13 +797,13 @@ private struct OpenAIFlashcardProvider: FlashcardLLMProvider {
 
 private struct CloudDeckPayload: Sendable {
     let title: String
-    let studySubject: String
+    let studyArea: String
     let topic: String
     let cards: [CloudDeckCardPayload]
 
-    nonisolated init(title: String, studySubject: String, topic: String, cards: [CloudDeckCardPayload]) {
+    nonisolated init(title: String, studyArea: String, topic: String, cards: [CloudDeckCardPayload]) {
         self.title = title
-        self.studySubject = studySubject
+        self.studyArea = studyArea
         self.topic = topic
         self.cards = cards
     }

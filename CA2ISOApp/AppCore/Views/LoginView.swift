@@ -17,7 +17,7 @@ struct LoginView: View {
     @Query var allUsers: [User]
 
     var body: some View {
-        @Bindable var viewModel = viewModel
+       @Bindable var viewModel = viewModel
         ZStack {
             // Background Blue
             Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
@@ -161,8 +161,8 @@ struct LoginView: View {
         .enableSwipeBack()
         .navigationDestination(isPresented: $viewModel.isLoggedIn) {
             // Checks if user is new or returning
-            if viewModel.chosenstudySubjects.isEmpty {
-                studySubjectPickerView()
+            if viewModel.chosenstudyAreas.isEmpty {
+                studyAreaPickerView()
             } else {
                 HomeView()
             }

@@ -215,7 +215,7 @@ struct FlashcardDeckAssistantView: View {
             }
         let deckContext = FlashcardDeckAssistantContext(
             title: flashcardSet.title,
-            studySubject: flashcardSet.studySubject,
+            studyArea: flashcardSet.studyArea,
             topic: flashcardSet.topic,
             sourceType: flashcardSet.sourceType,
             rawText: flashcardSet.rawText,

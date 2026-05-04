@@ -10,7 +10,7 @@ import Foundation
 struct FlashcardStudyProgressSnapshot: Codable, Hashable {
     let deckID: String
     let deckTitle: String
-    let studySubject: String
+    let studyArea: String
     let totalCardCount: Int
     let reviewedCardCount: Int
     let learnedCardCount: Int
@@ -29,7 +29,7 @@ struct FlashcardStudyProgressSnapshot: Codable, Hashable {
         FlashcardStudyProgressSnapshot(
             deckID: FlashcardStudyProgressStore.deckID(for: flashcardSet),
             deckTitle: flashcardSet.title,
-            studySubject: flashcardSet.studySubject,
+            studyArea: flashcardSet.studyArea,
             totalCardCount: flashcardSet.cards.count,
             reviewedCardCount: 0,
             learnedCardCount: 0,
@@ -77,7 +77,7 @@ enum FlashcardStudyProgressStore {
         let snapshot = FlashcardStudyProgressSnapshot(
             deckID: deckID,
             deckTitle: flashcardSet.title,
-            studySubject: flashcardSet.studySubject,
+            studyArea: flashcardSet.studyArea,
             totalCardCount: flashcardSet.cards.count,
             reviewedCardCount: max(reviewedCardCount, 0),
             learnedCardCount: max(learnedCardCount, 0),

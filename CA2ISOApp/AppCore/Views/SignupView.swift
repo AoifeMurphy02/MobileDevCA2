@@ -9,7 +9,8 @@ struct SignupView: View {
     @Environment(\.modelContext) private var modelContext
     
     var body: some View {
-        @Bindable var viewModel = viewModel 
+       @Bindable var viewModel = viewModel
+        
         ZStack {
             // Background Blue
             Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
@@ -33,7 +34,7 @@ struct SignupView: View {
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
                         .padding(.top, 30)
 
-                    Text("Create your account to organize studySubjects, build flashcard decks, and keep your study streak going.")
+                    Text("Create your account to organize studyAreas, build flashcard decks, and keep your study streak going.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -156,7 +157,7 @@ struct SignupView: View {
         .toolbar(.hidden, for: .navigationBar)
         .enableSwipeBack()
         .navigationDestination(isPresented: $viewModel.isSignedUp) {
-            studySubjectPickerView()
+            studyAreaPickerView()
         }
     }
 }

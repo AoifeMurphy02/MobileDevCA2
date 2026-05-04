@@ -35,7 +35,7 @@ struct CreateFlashCardView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         introCard
-                        studySubjectContextCard
+                        studyAreaContextCard
 
                         if viewModel.hasFlashcardDraft {
                             FlashcardResumeDraftCard(
@@ -190,12 +190,12 @@ struct CreateFlashCardView: View {
     }
 
     @ViewBuilder
-    private var studySubjectContextCard: some View {
-        if viewModel.studySubjectOptions.isEmpty {
+    private var studyAreaContextCard: some View {
+        if viewModel.studyAreaOptions.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Text("No studySubjects selected yet")
+                Text("No studyAreas selected yet")
                     .font(.headline)
-                Text("You can still create a deck now, and add studySubjects later to organize your library.")
+                Text("You can still create a deck now, and add studyAreas later to organize your library.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -209,15 +209,15 @@ struct CreateFlashCardView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
         } else {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Current studySubject")
+                Text("Current studyArea")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.secondary)
 
-                Text(viewModel.defaultstudySubjectForCreation.isEmpty ? "All studySubjects" : viewModel.defaultstudySubjectForCreation)
+                Text(viewModel.defaultstudyAreaForCreation.isEmpty ? "All studyAreas" : viewModel.defaultstudyAreaForCreation)
                     .font(.headline)
                     .foregroundColor(.black)
 
-                Text("Imported notes will be matched against your studySubjects and you can still change the suggestion in the review step.")
+                Text("Imported notes will be matched against your studyAreas and you can still change the suggestion in the review step.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -275,8 +275,8 @@ struct CreateFlashCardView: View {
     private func importFile(_ url: URL, useScannerLabel: Bool) async {
         do {
             setImportState(isLoading: true, message: "Reading your file...")
-            let availablestudySubjects = viewModel.studySubjectOptions
-            let preferredstudySubject = viewModel.defaultstudySubjectForCreation
+            let availablestudyAreas = viewModel.studyAreaOptions
+            let preferredstudyArea = viewModel.defaultstudyAreaForCreation
 
             let importedContent = try await Task.detached(priority: .userInitiated) {
                 if useScannerLabel {
@@ -290,12 +290,12 @@ struct CreateFlashCardView: View {
             let draftDeck: FlashcardDeckDraft = try await Task.detached(priority: .userInitiated) {
                 try await FlashcardImportService.buildDraftDeck(
                     title: importedContent.title,
-                    studySubject: "",
+                    studyArea: "",
                     topic: "",
                     sourceType: importedContent.sourceType,
                     text: importedContent.text,
-                    availablestudySubjects: availablestudySubjects,
-                    preferredstudySubject: preferredstudySubject
+                    availablestudyAreas: availablestudyAreas,
+                    preferredstudyArea: preferredstudyArea
                 )
             }.value
 
@@ -320,8 +320,8 @@ struct CreateFlashCardView: View {
             }
 
             let importedContent = try await FlashcardImportService.importImageData(data)
-            let availablestudySubjects = await MainActor.run { viewModel.studySubjectOptions }
-            let preferredstudySubject = await MainActor.run { viewModel.defaultstudySubjectForCreation }
+            let availablestudyAreas = await MainActor.run { viewModel.studyAreaOptions }
+            let preferredstudyArea = await MainActor.run { viewModel.defaultstudyAreaForCreation }
 
             await MainActor.run {
                 setImportState(isLoading: true, message: activeImageBuildMessage)
@@ -330,12 +330,12 @@ struct CreateFlashCardView: View {
             let draftDeck: FlashcardDeckDraft = try await Task.detached(priority: .userInitiated) {
                 try await FlashcardImportService.buildDraftDeck(
                     title: importedContent.title,
-                    studySubject: "",
+                    studyArea: "",
                     topic: "",
                     sourceType: importedContent.sourceType,
                     text: importedContent.text,
-                    availablestudySubjects: availablestudySubjects,
-                    preferredstudySubject: preferredstudySubject
+                    availablestudyAreas: availablestudyAreas,
+                    preferredstudyArea: preferredstudyArea
                 )
             }.value
 
@@ -356,8 +356,8 @@ struct CreateFlashCardView: View {
     private func importPastedText(title: String, text: String) async {
         do {
             let resolvedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Pasted Notes" : title
-            let availablestudySubjects = await MainActor.run { viewModel.studySubjectOptions }
-            let preferredstudySubject = await MainActor.run { viewModel.defaultstudySubjectForCreation }
+            let availablestudyAreas = await MainActor.run { viewModel.studyAreaOptions }
+            let preferredstudyArea = await MainActor.run { viewModel.defaultstudyAreaForCreation }
 
             await MainActor.run {
                 setImportState(isLoading: true, message: activePastedTextMessage)
@@ -366,12 +366,12 @@ struct CreateFlashCardView: View {
             let draftDeck: FlashcardDeckDraft = try await Task.detached(priority: .userInitiated) {
                 try await FlashcardImportService.buildDraftDeck(
                     title: resolvedTitle,
-                    studySubject: "",
+                    studyArea: "",
                     topic: "",
                     sourceType: "Pasted Notes",
                     text: text,
-                    availablestudySubjects: availablestudySubjects,
-                    preferredstudySubject: preferredstudySubject
+                    availablestudyAreas: availablestudyAreas,
+                    preferredstudyArea: preferredstudyArea
                 )
             }.value
 
@@ -432,7 +432,7 @@ struct CreateFlashCardView: View {
     private var introDescription: String {
         switch activeAIMode {
         case .local:
-            return "The app filters weak source text, ranks stronger concepts, suggests a studySubject and topic, and turns your material into cleaner question-and-answer flashcards before you review the deck."
+            return "The app filters weak source text, ranks stronger concepts, suggests a studyArea and topic, and turns your material into cleaner question-and-answer flashcards before you review the deck."
         case .appleIntelligence:
             return "The app grounds itself in your source text first, then uses Apple Intelligence on device to improve card quality, coverage, and phrasing while keeping the local fallback."
         case .openAI:
@@ -536,7 +536,7 @@ struct FlashcardSetCard: View {
     }
 
     private var setSubtitle: String {
-        [flashcardSet.studySubject, flashcardSet.sourceType]
+        [flashcardSet.studyArea, flashcardSet.sourceType]
             .filter { !$0.isEmpty }
             .joined(separator: " • ")
     }

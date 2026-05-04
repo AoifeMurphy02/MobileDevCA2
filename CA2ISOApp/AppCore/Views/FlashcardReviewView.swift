@@ -114,7 +114,7 @@ struct FlashcardReviewView: View {
     }
 
     private var deckDetailsSection: some View {
-        @Bindable var viewModel = viewModel
+       @Bindable var viewModel = viewModel
 
         return VStack(alignment: .leading, spacing: 14) {
             Text("Deck Details")
@@ -128,25 +128,25 @@ struct FlashcardReviewView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("studySubject")
+                Text("studyArea")
                     .font(.subheadline.weight(.semibold))
-                TextField("studySubject", text: $viewModel.flashcardDraftstudySubject)
+                TextField("studyArea", text: $viewModel.flashcardDraftstudyArea)
                     .textFieldStyle(.roundedBorder)
 
-                if !self.viewModel.studySubjectOptions.isEmpty {
+                if !self.viewModel.studyAreaOptions.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(self.viewModel.studySubjectOptions, id: \.self) { studySubject in
+                            ForEach(self.viewModel.studyAreaOptions, id: \.self) { studyArea in
                                 Button {
-                                    self.viewModel.flashcardDraftstudySubject = studySubject
+                                    self.viewModel.flashcardDraftstudyArea = studyArea
                                 } label: {
-                                    Text(studySubject)
+                                    Text(studyArea)
                                         .font(.caption.weight(.semibold))
-                                        .foregroundColor(self.viewModel.flashcardDraftstudySubject == studySubject ? .white : Color(red: 0.25, green: 0.53, blue: 0.94))
+                                        .foregroundColor(self.viewModel.flashcardDraftstudyArea == studyArea ? .white : Color(red: 0.25, green: 0.53, blue: 0.94))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(
-                                            self.viewModel.flashcardDraftstudySubject == studySubject
+                                            self.viewModel.flashcardDraftstudyArea == studyArea
                                             ? Color(red: 0.25, green: 0.53, blue: 0.94)
                                             : Color(red: 0.94, green: 0.97, blue: 1.0)
                                         )
@@ -172,8 +172,8 @@ struct FlashcardReviewView: View {
     }
 
     private var cardsSection: some View {
-        @Bindable var viewModel = viewModel
-
+       @Bindable var viewModel = viewModel
+        
         return VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Cards")
@@ -309,7 +309,7 @@ struct FlashcardReviewView: View {
         let deckDraft = FlashcardDeckDraft(
             title: viewModel.flashcardDraftTitle.isEmpty ? "New Deck" : viewModel.flashcardDraftTitle,
             sourceType: viewModel.flashcardDraftSourceType.isEmpty ? "Manual" : viewModel.flashcardDraftSourceType,
-            studySubject: viewModel.flashcardDraftstudySubject,
+            studyArea: viewModel.flashcardDraftstudyArea,
             topic: viewModel.flashcardDraftTopic,
             rawText: viewModel.flashcardDraftRawText,
             cards: viewModel.flashcardDraftCards // Ensure this array is passed!
@@ -352,7 +352,7 @@ struct FlashcardReviewView: View {
         let deckTitle = viewModel.flashcardDraftTitle.isEmpty ? "Untitled Deck" : viewModel.flashcardDraftTitle
         StudyNotificationManager.scheduleDraftReviewReminder(
             deckTitle: deckTitle,
-            studySubject: viewModel.flashcardDraftstudySubject,
+            studyArea: viewModel.flashcardDraftstudyArea,
             cardCount: viewModel.flashcardDraftCards.count
         )
     }

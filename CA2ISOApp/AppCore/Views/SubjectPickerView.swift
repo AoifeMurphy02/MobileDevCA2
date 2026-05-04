@@ -2,19 +2,19 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-struct studySubjectPickerView: View {
+struct studyAreaPickerView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
     @Query var allUsers: [User]
 
-    @State private var selectedstudySubjects: Set<String> = []
+    @State private var selectedstudyAreas: Set<String> = []
     @State private var navigateToHome = false
-    @State private var studySubjects = [
+    @State private var studyAreas = [
         "English", "French", "German", "Spanish", "Mathematics",
         "Physics", "Biology", "Chemistry", "Computer Science",
         "Geography", "History", "Business", "Music", "Art"
     ]
-    @State private var newstudySubjectName = ""
+    @State private var newstudyAreaName = ""
 
     private let columns = [
         GridItem(.adaptive(minimum: 140), spacing: 12)
@@ -38,11 +38,11 @@ struct studySubjectPickerView: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Choose Your studySubjects")
+                        Text("Choose Your studyAreas")
                             .font(.system(size: 30, weight: .bold, design: .rounded))
                             .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
 
-                        Text("studySubjects act like study spaces. They organize your decks, power AI suggestions, and make the home screen easier to understand.")
+                        Text("studyAreas act like study spaces. They organize your decks, power AI suggestions, and make the home screen easier to understand.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
@@ -55,12 +55,12 @@ struct studySubjectPickerView: View {
                     .padding(.bottom, 24)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Add a custom studySubject")
+                        Text("Add a custom studyArea")
                             .font(.headline)
                             .padding(.horizontal, 26)
 
                         HStack(spacing: 12) {
-                            TextField("Type a studySubject name", text: $newstudySubjectName)
+                            TextField("Type a studyArea name", text: $newstudyAreaName)
                                 .padding(14)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14)
@@ -68,30 +68,30 @@ struct studySubjectPickerView: View {
                                 )
                                 .textInputAutocapitalization(.words)
 
-                            Button(action: addNewstudySubject) {
+                            Button(action: addNewstudyArea) {
                                 Image(systemName: "plus")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .frame(width: 48, height: 48)
                                     .background(
                                         Circle()
-                                            .fill(newstudySubjectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
+                                            .fill(newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
                                     )
                             }
-                            .disabled(newstudySubjectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .disabled(newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                         .padding(.horizontal, 26)
                     }
 
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(studySubjects, id: \.self) { studySubject in
-                                studySubjectSelectionChip(
-                                    title: studySubject,
-                                    isSelected: selectedstudySubjects.contains(studySubject)
+                            ForEach(studyAreas, id: \.self) { studyArea in
+                                studyAreaSelectionChip(
+                                    title: studyArea,
+                                    isSelected: selectedstudyAreas.contains(studyArea)
                                 )
                                 .onTapGesture {
-                                    togglestudySubject(studySubject)
+                                    togglestudyArea(studyArea)
                                 }
                             }
                         }
@@ -101,19 +101,19 @@ struct studySubjectPickerView: View {
                     }
 
                     VStack(spacing: 14) {
-                        Button(action: savestudySubjectsAndContinue) {
-                            Text(selectedstudySubjects.isEmpty ? "Choose at Least One studySubject" : continueButtonTitle)
+                        Button(action: savestudyAreasAndContinue) {
+                            Text(selectedstudyAreas.isEmpty ? "Choose at Least One studyArea" : continueButtonTitle)
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
-                                .background(selectedstudySubjects.isEmpty ? Color.gray : Color(red: 0.11, green: 0.49, blue: 0.95))
+                                .background(selectedstudyAreas.isEmpty ? Color.gray : Color(red: 0.11, green: 0.49, blue: 0.95))
                                 .clipShape(Capsule())
                         }
-                        .disabled(selectedstudySubjects.isEmpty)
+                        .disabled(selectedstudyAreas.isEmpty)
 
-                        if !viewModel.studySubjectOptions.isEmpty {
-                            Button("Keep Existing studySubjects") {
+                        if !viewModel.studyAreaOptions.isEmpty {
+                            Button("Keep Existing studyAreas") {
                                 navigateToHome = true
                             }
                             .font(.subheadline.weight(.semibold))
@@ -134,7 +134,7 @@ struct studySubjectPickerView: View {
         .toolbar(.hidden, for: .navigationBar)
         .enableSwipeBack()
         .onAppear {
-            syncSelectedstudySubjects()
+            syncSelectedstudyAreas()
         }
         .navigationDestination(isPresented: $navigateToHome) {
             HomeView()
@@ -142,52 +142,52 @@ struct studySubjectPickerView: View {
     }
 
     private var continueButtonTitle: String {
-        viewModel.studySubjectOptions.isEmpty ? "Continue to Home" : "Save studySubjects"
+        viewModel.studyAreaOptions.isEmpty ? "Continue to Home" : "Save studyAreas"
     }
 
-    private func syncSelectedstudySubjects() {
-        for studySubject in viewModel.studySubjectOptions {
-            if !studySubjects.contains(studySubject) {
-                studySubjects.insert(studySubject, at: 0)
+    private func syncSelectedstudyAreas() {
+        for studyArea in viewModel.studyAreaOptions {
+            if !studyAreas.contains(studyArea) {
+                studyAreas.insert(studyArea, at: 0)
             }
-            selectedstudySubjects.insert(studySubject)
+            selectedstudyAreas.insert(studyArea)
         }
     }
 
-    private func togglestudySubject(_ studySubject: String) {
-        if selectedstudySubjects.contains(studySubject) {
-            selectedstudySubjects.remove(studySubject)
+    private func togglestudyArea(_ studyArea: String) {
+        if selectedstudyAreas.contains(studyArea) {
+            selectedstudyAreas.remove(studyArea)
         } else {
-            selectedstudySubjects.insert(studySubject)
+            selectedstudyAreas.insert(studyArea)
         }
     }
 
-    private func addNewstudySubject() {
-        let trimmedName = newstudySubjectName.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func addNewstudyArea() {
+        let trimmedName = newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !trimmedName.isEmpty, !studySubjects.contains(trimmedName) else { return }
+        guard !trimmedName.isEmpty, !studyAreas.contains(trimmedName) else { return }
 
         withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
-            studySubjects.insert(trimmedName, at: 0)
-            selectedstudySubjects.insert(trimmedName)
-            newstudySubjectName = ""
+            studyAreas.insert(trimmedName, at: 0)
+            selectedstudyAreas.insert(trimmedName)
+            newstudyAreaName = ""
         }
     }
 
-    private func savestudySubjectsAndContinue() {
-        let orderedSelection = studySubjects.filter { selectedstudySubjects.contains($0) }
+    private func savestudyAreasAndContinue() {
+        let orderedSelection = studyAreas.filter { selectedstudyAreas.contains($0) }
 
-        viewModel.applyChosenstudySubjects(orderedSelection)
-        if let firststudySubject = orderedSelection.first {
-            viewModel.selectstudySubject(firststudySubject)
+        viewModel.applyChosenstudyAreas(orderedSelection)
+        if let firststudyArea = orderedSelection.first {
+            viewModel.selectstudyArea(firststudyArea)
         }
-        viewModel.persiststudySubjectsToDatabase(modelContext: modelContext, users: allUsers)
+        viewModel.persiststudyAreasToDatabase(modelContext: modelContext, users: allUsers)
 
         navigateToHome = true
     }
 }
 
-private struct studySubjectSelectionChip: View {
+private struct studyAreaSelectionChip: View {
     let title: String
     let isSelected: Bool
 
@@ -218,7 +218,7 @@ private struct studySubjectSelectionChip: View {
 
 #Preview {
     NavigationStack {
-        studySubjectPickerView()
+        studyAreaPickerView()
             .environment(AppViewModel())
     }
 }

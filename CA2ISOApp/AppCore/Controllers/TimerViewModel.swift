@@ -8,6 +8,7 @@ class TimerViewModel {
     var timeRemaining = 1500 // 25 minutes
     var isActive = false
     var timer: Timer?
+    var hasFinishedSession = false
     
     func formatTime() -> String {
         let minutes = timeRemaining / 60
@@ -39,11 +40,19 @@ class TimerViewModel {
         timeRemaining = 1500
     }
     
+   // func timerFinished() {
+     //   timer?.invalidate()
+       // isActive = false
+    //}
     func timerFinished() {
-        timer?.invalidate()
-        isActive = false
-    }
-    
+            timer?.invalidate()
+            isActive = false
+            timeRemaining = 0
+            //sendNotification()
+            
+            // TRIGGER THE CHANGE:
+            self.hasFinishedSession = true
+        }
     func setDuration(minutes: Int) {
         // Stop any running timer
         timer?.invalidate()

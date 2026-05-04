@@ -306,10 +306,10 @@ enum FlashcardSourceAnalyzer {
             return nil
         }
 
-        let studySubjectClause = String(sentence[..<range.lowerBound])
+        let studyAreaClause = String(sentence[..<range.lowerBound])
         let detailClause = String(sentence[range.upperBound...])
 
-        guard let concept = conceptPhrase(from: studySubjectClause, dominantConcepts: dominantConcepts) else {
+        guard let concept = conceptPhrase(from: studyAreaClause, dominantConcepts: dominantConcepts) else {
             return nil
         }
 
@@ -331,10 +331,10 @@ enum FlashcardSourceAnalyzer {
             return nil
         }
 
-        let studySubjectClause = String(sentence[..<range.lowerBound])
+        let studyAreaClause = String(sentence[..<range.lowerBound])
         let reasonClause = String(sentence[range.upperBound...])
 
-        guard let concept = conceptPhrase(from: studySubjectClause, dominantConcepts: dominantConcepts) else {
+        guard let concept = conceptPhrase(from: studyAreaClause, dominantConcepts: dominantConcepts) else {
             return nil
         }
 
@@ -359,10 +359,10 @@ enum FlashcardSourceAnalyzer {
                 continue
             }
 
-            let studySubjectClause = String(sentence[..<range.lowerBound])
+            let studyAreaClause = String(sentence[..<range.lowerBound])
             let examplesClause = String(sentence[range.upperBound...])
 
-            guard let concept = conceptPhrase(from: studySubjectClause, dominantConcepts: dominantConcepts) else {
+            guard let concept = conceptPhrase(from: studyAreaClause, dominantConcepts: dominantConcepts) else {
                 continue
             }
 
