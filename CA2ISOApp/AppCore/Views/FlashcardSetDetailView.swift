@@ -29,6 +29,9 @@ struct FlashcardSetDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    
+    @Environment(AppViewModel.self) private var viewModel
+    @Query var allUsers: [User]
 
     let flashcardSet: FlashcardSet
 
@@ -329,7 +332,10 @@ struct FlashcardSetDetailView: View {
         } else {
             withAnimation(.easeInOut(duration: 0.2)) {
                 sessionComplete = true
+                
             }
+            print("DEBUG: Deck finished! Updating streak...")
+                    viewModel.recordStudyActivity(modelContext: modelContext, users: allUsers)
             finishSession()
         }
     }
