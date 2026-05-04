@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import AuthenticationServices
 import GoogleSignIn
 
 struct LoginView: View {
@@ -86,7 +85,7 @@ struct LoginView: View {
                     
                     // Main Sign In Button
                     Button(action: {
-                        viewModel.loginUser(users: allUsers)
+                        viewModel.loginUser(users: allUsers, rememberSession: rememberMe)
                     }) {
                         HStack {
                             Spacer(); Text("Sign In"); Spacer()
@@ -116,29 +115,6 @@ struct LoginView: View {
                             .frame(width: 45, height: 45)
                             
                         }
-                        
-                        // 2. APPLE BUTTON
-                        ZStack {
-                            LoginSocialButton(imageName: "apple")
-                            
-                            SignInWithAppleButton(
-                                onRequest: { $0.requestedScopes = [.email, .fullName] },
-                                onCompletion: { result in
-                                    viewModel.handleAppleSignIn(result: result, modelContext: modelContext)
-                                }
-                            )
-                            .blendMode(.destinationOver)
-                            .frame(width: 45, height: 45)
-                            
-                            // Bypass for personal accounts
-                            Button(action: {
-                                print("DEBUG: Apple Bypass triggered")
-                                viewModel.mockAppleSignIn(modelContext: modelContext)
-                            }) {
-                                Circle().fill(Color.white.opacity(0.01))
-                            }
-                            .frame(width: 45, height: 45)
-                        }
                     }
                     
                     // Link to Sign Up
@@ -167,6 +143,10 @@ struct LoginView: View {
                 HomeView()
             }
         }
+        .onAppear {
+            viewModel.loginError = ""
+            rememberMe = viewModel.rememberMePreference
+        }
     }
 }
 
@@ -190,13 +170,10 @@ struct LoginSocialButton: View {
             .frame(width: 45, height: 45)
             .shadow(color: .black.opacity(0.1), radius: 5)
             .overlay(
-                Group {
-                    if imageName == "apple" {
-                        Image(systemName: "applelogo").font(.title3).foregroundColor(.black)
-                    } else {
-                        Image(imageName).resizable().scaledToFit().frame(width: 25, height: 25)
-                    }
-                }
+                Image(imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 25, height: 25)
             )
     }
 }
