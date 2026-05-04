@@ -85,7 +85,7 @@ struct CreateResourceView: View {
                     Spacer()
                 }
               // .frame(maxWidth: .infinity, maxHeight: min(geometry.size.height * 0.62, 470))
-                .background(Color.white)
+                .background(AppTheme.surface)
                // .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
         }
@@ -113,7 +113,7 @@ struct ResourceActionButton: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(AppTheme.text)
 
                     Text(subtitle)
                         .font(.subheadline)
@@ -125,7 +125,7 @@ struct ResourceActionButton: View {
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 18).stroke(Color.blue.opacity(0.18), lineWidth: 1.4))
-            .background(Color.white)
+            .background(AppTheme.surface)
             .cornerRadius(18)
         }
     }

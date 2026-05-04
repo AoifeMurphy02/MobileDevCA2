@@ -24,6 +24,7 @@ struct CreateFlashCardView: View {
     @State private var showFileImporter = false
     @State private var showPasteTextSheet = false
     @State private var showAISettings = false
+    @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var importErrorMessage = ""
     @State private var showImportAlert = false
@@ -79,8 +80,8 @@ struct CreateFlashCardView: View {
                                 viewModel.navPath.append(NavTarget.createFlashcardsManually)
                             }
 
-                            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                                FlashcardActionRow(icon: "photo", title: "Select image")
+                            FlashcardActionButton(icon: "photo", title: "Select image") {
+                                showPhotoPicker = true
                             }
                         }
 
@@ -98,7 +99,7 @@ struct CreateFlashCardView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(Color.white)
+            .background(AppTheme.surface)
 
             CustomNavBar(selectedTab: 1)
         }
@@ -137,6 +138,11 @@ struct CreateFlashCardView: View {
         ) { result in
             handleImportedFile(result, useScannerLabel: false)
         }
+        .photosPicker(
+            isPresented: $showPhotoPicker,
+            selection: $selectedPhotoItem,
+            matching: .images
+        )
         .onChange(of: selectedPhotoItem) { _, newValue in
             guard let newValue else { return }
 
@@ -180,7 +186,7 @@ struct CreateFlashCardView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Create Flashcards")
                     .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .foregroundColor(AppTheme.primary)
 
                 Text(headerSubtitle)
                     .font(.subheadline)
@@ -194,9 +200,9 @@ struct CreateFlashCardView: View {
             } label: {
                 Image(systemName: "gearshape.fill")
                     .font(.headline)
-                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .foregroundColor(AppTheme.primary)
                     .padding(12)
-                    .background(Color(red: 0.94, green: 0.97, blue: 1.0))
+                    .background(AppTheme.secondarySurface)
                     .clipShape(Circle())
             }
         }
@@ -209,7 +215,7 @@ struct CreateFlashCardView: View {
             HStack {
                 Label(introTitle, systemImage: "sparkles")
                     .font(.headline)
-                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .foregroundColor(AppTheme.primary)
 
                 Spacer()
             }
@@ -224,7 +230,7 @@ struct CreateFlashCardView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(red: 0.94, green: 0.97, blue: 1.0))
+        .background(AppTheme.secondarySurface)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
@@ -240,7 +246,7 @@ struct CreateFlashCardView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
+            .background(AppTheme.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(Color.blue.opacity(0.16), lineWidth: 1.2)
@@ -254,7 +260,7 @@ struct CreateFlashCardView: View {
 
                 Text(viewModel.defaultstudyAreaForCreation.isEmpty ? "All studyAreas" : viewModel.defaultstudyAreaForCreation)
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(AppTheme.text)
 
                 Text("Imported notes will be matched against your studyAreas and you can still change the suggestion in the review step.")
                     .font(.subheadline)
@@ -262,7 +268,7 @@ struct CreateFlashCardView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
+            .background(AppTheme.surface)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(Color.blue.opacity(0.16), lineWidth: 1.2)
@@ -284,7 +290,7 @@ struct CreateFlashCardView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Saved Sets")
                     .font(.headline)
-                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .foregroundColor(AppTheme.primary)
                     .padding(.top, 6)
 
                 ForEach(visibleFlashcardSets.prefix(8)) { flashcardSet in
@@ -619,13 +625,13 @@ struct FlashcardSetCard: View {
                     .frame(width: 54, height: 54)
 
                 Image(systemName: "square.stack.3d.up.fill")
-                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .foregroundColor(AppTheme.primary)
             }
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(flashcardSet.title)
                     .font(.headline)
-                    .foregroundColor(.black)
+                    .foregroundColor(AppTheme.text)
                     .multilineTextAlignment(.leading)
 
                 Text("\(flashcardSet.cards.count) cards")
@@ -634,7 +640,7 @@ struct FlashcardSetCard: View {
 
                 Text(setSubtitle)
                     .font(.caption)
-                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .foregroundColor(AppTheme.primary)
             }
 
             Spacer()
@@ -645,7 +651,7 @@ struct FlashcardSetCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.blue.opacity(0.18), lineWidth: 1.5)
@@ -671,7 +677,7 @@ struct FlashcardResumeDraftCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Continue Editing")
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(AppTheme.text)
 
                     Text("\(resolvedTitle) • \(cardCount) draft cards")
                         .font(.subheadline)
@@ -682,11 +688,11 @@ struct FlashcardResumeDraftCard: View {
 
                 Image(systemName: "arrow.right.circle.fill")
                     .font(.title3)
-                    .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                    .foregroundColor(AppTheme.primary)
             }
             .padding(16)
             .frame(maxWidth: .infinity)
-            .background(Color(red: 0.97, green: 0.99, blue: 1.0))
+            .background(AppTheme.background)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
@@ -728,7 +734,7 @@ struct FlashcardActionRow: View {
 
             Spacer()
         }
-        .foregroundColor(.black)
+        .foregroundColor(AppTheme.text)
         .padding(.vertical, 18)
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
@@ -736,7 +742,7 @@ struct FlashcardActionRow: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
         )
-        .background(Color.white)
+        .background(AppTheme.surface)
         .cornerRadius(12)
     }
 }
@@ -787,7 +793,7 @@ private struct PasteTextImportSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(Color(red: 0.25, green: 0.53, blue: 0.94))
+                        .background(AppTheme.primarySoft)
                         .clipShape(Capsule())
                 }
                 .disabled(pastedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

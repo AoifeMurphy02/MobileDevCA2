@@ -31,7 +31,7 @@ struct FlashcardReviewView: View {
             .padding(20)
             .padding(.bottom, 32)
         }
-        .background(Color(red: 0.98, green: 0.99, blue: 1.0).ignoresSafeArea())
+        .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle("Review Deck")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $shouldOpenSavedDeck) {
@@ -109,7 +109,7 @@ struct FlashcardReviewView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
     }
@@ -149,7 +149,7 @@ struct FlashcardReviewView: View {
                                         .background(
                                             self.viewModel.flashcardDraftstudyArea == studyArea
                                             ? Color(red: 0.25, green: 0.53, blue: 0.94)
-                                            : Color(red: 0.94, green: 0.97, blue: 1.0)
+                                            : AppTheme.secondarySurface
                                         )
                                         .clipShape(Capsule())
                                 }
@@ -167,7 +167,7 @@ struct FlashcardReviewView: View {
             }
         }
         .padding(18)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
     }
@@ -200,7 +200,7 @@ struct FlashcardReviewView: View {
                 }
                 .padding(18)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.white)
+                .background(AppTheme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
                 ForEach(Array(self.viewModel.flashcardDraftCards.enumerated()), id: \.element.id) { displayIndex, card in
@@ -413,7 +413,7 @@ private struct FlashcardEditorCard: View {
                             .foregroundColor(Color(red: 0.25, green: 0.53, blue: 0.94))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color(red: 0.94, green: 0.97, blue: 1.0))
+                        .background(AppTheme.secondarySurface)
                             .clipShape(Capsule())
 
                         ConfidencePill(confidence: card.confidence)
@@ -465,13 +465,13 @@ private struct FlashcardEditorCard: View {
                         .foregroundColor(.secondary)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(red: 0.98, green: 0.99, blue: 1.0))
+                        .background(AppTheme.background)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             }
         }
         .padding(18)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
     }
@@ -485,7 +485,7 @@ private struct EditorTextBox: View {
         TextEditor(text: $text)
             .frame(minHeight: minHeight)
             .padding(10)
-            .background(Color(red: 0.98, green: 0.99, blue: 1.0))
+            .background(AppTheme.background)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)

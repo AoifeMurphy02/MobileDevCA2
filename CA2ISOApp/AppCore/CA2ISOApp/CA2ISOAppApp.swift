@@ -24,12 +24,9 @@ struct CA2ISOAppApp: App {
     let notifyDelegate = NotificationDelegate()
 
     init() {
-        // 2. Request Permissions on launch
         viewModel.configureGoogleSignIn()
         let center = UNUserNotificationCenter.current()
         center.delegate = notifyDelegate
-        StudyNotificationManager.requestAuthorizationIfNeeded()
-        StudyNotificationManager.refreshDailyStudyReminder()
     }
 
     var body: some Scene {

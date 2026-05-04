@@ -43,13 +43,13 @@ struct TimerView: View {
                 
                 Button(action: { timerVM.toggleTimer() }) {
                     Image(systemName: timerVM.isActive ? "pause.fill" : "play.fill")
-                        .font(.system(size: 40)).foregroundColor(.black).padding()
+                        .font(.system(size: 40)).foregroundColor(AppTheme.text).padding()
                 }
                 
                 Spacer(); Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.white)
+            .background(AppTheme.background)
             
             CustomNavBar(selectedTab: 2)
         }

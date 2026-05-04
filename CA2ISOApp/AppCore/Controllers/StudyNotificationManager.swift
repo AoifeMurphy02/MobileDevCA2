@@ -19,8 +19,15 @@ enum StudyNotificationManager {
 
     nonisolated static func requestAuthorizationIfNeeded() {
         let center = UNUserNotificationCenter.current()
-        center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-            print(granted ? "Notifications Allowed" : "Notifications Denied")
+
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .notDetermined else {
+                return
+            }
+
+            center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+                print(granted ? "Notifications Allowed" : "Notifications Denied")
+            }
         }
     }
 

@@ -56,7 +56,7 @@ struct HomeView: View {
             // Centralized Navigation Bar
             CustomNavBar(selectedTab: 0)
         }
-        .background(Color(red: 0.97, green: 0.99, blue: 1.0).ignoresSafeArea())
+        .background(AppTheme.background.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
         .disableSwipeBack()
         .sheet(isPresented: showSheet) {
@@ -78,6 +78,8 @@ struct HomeView: View {
             viewModel.syncCurrentUserState(modelContext: modelContext)
             refreshDashboardDecks()
             refreshProgressSnapshots()
+            StudyNotificationManager.requestAuthorizationIfNeeded()
+            StudyNotificationManager.refreshDailyStudyReminder()
         }
         .onChange(of: scenePhase) { _, newValue in
             if newValue == .active {
@@ -162,7 +164,7 @@ struct HomeView: View {
                     Text("No spaces yet").font(.headline)
                     Text("Pick Areas to organize your decks.").font(.subheadline).foregroundColor(.secondary)
                 }
-                .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(AppTheme.surface).clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -192,7 +194,7 @@ struct HomeView: View {
                     Text("No decks yet").font(.headline)
                     Text("Start creating flashcards to build your library.").font(.subheadline).foregroundColor(.secondary)
                 }
-                .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(AppTheme.surface).clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
                 ForEach(visibleSets.prefix(8)) { set in
                     NavigationLink(value: NavTarget.flashcardSetDetail(set)) {
@@ -279,7 +281,7 @@ private struct ProfileSheetView: View {
         VStack(alignment: .leading, spacing: 18) {
             Text("Profile")
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                .foregroundColor(AppTheme.primary)
 
             VStack(alignment: .leading, spacing: 12) {
                 ProfileInfoRow(title: "Signed in as", value: email.isEmpty ? "Unknown account" : email)
@@ -288,7 +290,7 @@ private struct ProfileSheetView: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(red: 0.97, green: 0.99, blue: 1.0))
+            .background(AppTheme.background)
             .clipShape(RoundedRectangle(cornerRadius: 18))
 
             Button(role: .destructive, action: logoutAction) {
@@ -319,7 +321,7 @@ private struct ProfileInfoRow: View {
 
             Text(value)
                 .font(.headline)
-                .foregroundColor(.black)
+                .foregroundColor(AppTheme.text)
         }
     }
 }
@@ -334,13 +336,13 @@ private struct studyAreaFilterChip: View {
         Button(action: action) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundColor(isSelected ? .white : Color(red: 0.11, green: 0.49, blue: 0.95))
+                .foregroundColor(isSelected ? .white : AppTheme.primary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
                     isSelected
-                    ? Color(red: 0.11, green: 0.49, blue: 0.95)
-                    : Color.white
+                    ? AppTheme.primary
+                    : AppTheme.surface
                 )
                 .clipShape(Capsule())
                 .overlay(
@@ -374,7 +376,7 @@ private struct PendingDraftProgressCard: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Review, Save, and Study")
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(AppTheme.text)
 
                     Text(draftSubtitle)
                         .font(.subheadline)
@@ -386,7 +388,7 @@ private struct PendingDraftProgressCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity)
-            .background(Color.white)
+            .background(AppTheme.surface)
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
@@ -410,7 +412,7 @@ private struct DeckProgressCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(flashcardSet.title)
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(AppTheme.text)
 
                     Text(deckSubtitle)
                         .font(.subheadline)
@@ -446,7 +448,7 @@ private struct DeckProgressCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 
