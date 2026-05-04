@@ -1,7 +1,11 @@
 import SwiftUI
+import SwiftData
 
 struct StartView: View {
+    @Environment(AppViewModel.self) private var viewModel
+    @Query private var allUsers: [User]
     @State private var isAnimating = false
+    @State private var didCheckSavedSession = false
 
     var body: some View {
         ZStack {
@@ -86,6 +90,27 @@ struct StartView: View {
                 .padding(.horizontal, 28)
                 .padding(.bottom, 46)
             }
+        }
+        .onAppear {
+            attemptSessionRestore()
+        }
+        .onChange(of: allUsers.count) { _, _ in
+            attemptSessionRestore()
+        }
+    }
+
+    private func attemptSessionRestore() {
+        guard !didCheckSavedSession else { return }
+
+        guard let destination = viewModel.restorePersistedSession(users: allUsers) else {
+            return
+        }
+
+        didCheckSavedSession = true
+
+        DispatchQueue.main.async {
+            viewModel.navPath = NavigationPath()
+            viewModel.navPath.append(destination)
         }
     }
 }
