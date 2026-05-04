@@ -4,7 +4,6 @@ import SwiftData
 struct TimerView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
-    @Query var allUsers: [User]
     
     @State private var timerVM = TimerViewModel()
     @State private var showTimePicker = false
@@ -60,7 +59,7 @@ struct TimerView: View {
         .onChange(of: timerVM.hasFinishedSession) { oldValue, newValue in
                   if newValue == true {
                       print("DEBUG: View detected timer finished. Updating streak...")
-                      viewModel.recordStudyActivity(modelContext: modelContext, users: allUsers)
+                      viewModel.recordStudyActivity(modelContext: modelContext)
                       
                       // Reset the trigger so it can happen again next time
                       timerVM.hasFinishedSession = false
@@ -91,4 +90,3 @@ struct TimerView: View {
        }
         
     }
-
