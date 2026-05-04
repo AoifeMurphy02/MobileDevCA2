@@ -317,7 +317,10 @@ struct FlashcardReviewView: View {
 
         do {
             // 2. Build and Insert
-            let flashcardSet = try FlashcardImportService.buildSet(from: deckDraft)
+            let flashcardSet = try FlashcardImportService.buildSet(
+                from: deckDraft,
+                ownerEmail: viewModel.currentUserEmail ?? ""
+            )
             modelContext.insert(flashcardSet)
             
             // 3. Save to SQLite
