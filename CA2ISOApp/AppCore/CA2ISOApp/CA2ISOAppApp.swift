@@ -34,7 +34,7 @@ struct CA2ISOAppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            @Bindable var viewModel = viewModel
+           @Bindable var viewModel = viewModel
             
             // THE GLOBAL NAVIGATION ENGINE
             NavigationStack(path: $viewModel.navPath) {
@@ -44,7 +44,7 @@ struct CA2ISOAppApp: App {
                         case .signup: SignupView()
                         case .login: LoginView()
                         case .home: HomeView()
-                        case .subjectPicker: SubjectPickerView()
+                        case .studyAreaPicker: studyAreaPickerView()
                         case .flashcards: CreateFlashCardView()
                         case .flashcardReview: FlashcardReviewView()
                         case .studyGuide: CreateStudyGuideView()

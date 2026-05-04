@@ -17,7 +17,7 @@ enum NavTarget: Hashable {
     case signup
     case login
     case home
-    case subjectPicker
+    case studyAreaPicker
     case flashcards
     case flashcardReview
     case studyGuide
@@ -39,8 +39,8 @@ class AppViewModel {
     var isLoggedIn = false // New state to trigger navigation to Home
     var loginError = ""    // For error handling
     
-    var chosenSubjects: [String] = []
-    var activeSubject = ""
+    var chosenstudyAreas: [String] = []
+    var activestudyArea = ""
     var currentUserEmail: String?
     //hardcoded for now
     var streakCount: Int = 2
@@ -54,7 +54,7 @@ class AppViewModel {
     
     var flashcardDraftTitle = ""
     var flashcardDraftSourceType = ""
-    var flashcardDraftSubject = ""
+    var flashcardDraftstudyArea = ""
     var flashcardDraftTopic = ""
     var flashcardDraftRawText = ""
     var flashcardDraftAIGenerationMode = ""
@@ -68,16 +68,16 @@ class AppViewModel {
         !flashcardDraftCards.isEmpty
     }
 
-    var subjectOptions: [String] {
-        uniqueSubjects(from: chosenSubjects)
+    var studyAreaOptions: [String] {
+        uniquestudyAreas(from: chosenstudyAreas)
     }
 
-    var defaultSubjectForCreation: String {
-        if !activeSubject.isEmpty {
-            return activeSubject
+    var defaultstudyAreaForCreation: String {
+        if !activestudyArea.isEmpty {
+            return activestudyArea
         }
 
-        return subjectOptions.first ?? ""
+        return studyAreaOptions.first ?? ""
     }
     
     //  save the user
@@ -101,7 +101,7 @@ class AppViewModel {
             
             try modelContext.save()
             self.currentUserEmail = cleanEmail // Set the session immediately
-            applyChosenSubjects([])
+            applyChosenstudyAreas([])
             print("SUCCESS: User \(cleanEmail) saved to SwiftData!")
             
             // 3. Double Check: Verify the save worked right now
@@ -128,7 +128,7 @@ class AppViewModel {
         if let foundUser = users.first(where: { $0.email.lowercased() == cleanEmail }) {
             if foundUser.password == password {
                 self.currentUserEmail = foundUser.email // Remember the user
-                applyChosenSubjects(foundUser.savedSubjects)
+                applyChosenstudyAreas(foundUser.savedstudyAreas)
                 self.isLoggedIn = true
             }
             else {
@@ -141,8 +141,8 @@ class AppViewModel {
         }
     }
     
-    //Save the subjects to the Database
-    func persistSubjectsToDatabase(modelContext: ModelContext, users: [User]) {
+    //Save the studyAreas to the Database
+    func persiststudyAreasToDatabase(modelContext: ModelContext, users: [User]) {
         // Clean the session email to match the database format
         guard let sessionEmail = currentUserEmail?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) else {
             print("DEBUG: No user email found in session. Cannot save.")
@@ -153,12 +153,12 @@ class AppViewModel {
         if let userInDB = users.first(where: { $0.email.lowercased() == sessionEmail }) {
             
             // Sync the data
-            userInDB.savedSubjects = self.subjectOptions
+            userInDB.savedstudyAreas = self.studyAreaOptions
             
             do {
                 // Force SwiftData to write the change to the disk
                 try modelContext.save()
-                print("SUCCESS: Saved \(self.subjectOptions.count) subjects for user: \(sessionEmail)")
+                print("SUCCESS: Saved \(self.studyAreaOptions.count) studyAreas for user: \(sessionEmail)")
             } catch {
                 print("ERROR: Could not save to database: \(error.localizedDescription)")
             }
@@ -169,7 +169,7 @@ class AppViewModel {
     func loadFlashcardDraft(_ draft: FlashcardDeckDraft) {
         flashcardDraftTitle = draft.title
         flashcardDraftSourceType = draft.sourceType
-        flashcardDraftSubject = draft.subject.isEmpty ? defaultSubjectForCreation : draft.subject
+        flashcardDraftstudyArea = draft.studyArea.isEmpty ? defaultstudyAreaForCreation : draft.studyArea
         flashcardDraftTopic = draft.topic
         flashcardDraftRawText = draft.rawText
         flashcardDraftAIGenerationMode = draft.aiGenerationMode
@@ -182,7 +182,7 @@ class AppViewModel {
         StudyNotificationManager.cancelDraftReviewReminder()
         flashcardDraftTitle = ""
         flashcardDraftSourceType = ""
-        flashcardDraftSubject = ""
+        flashcardDraftstudyArea = ""
         flashcardDraftTopic = ""
         flashcardDraftRawText = ""
         flashcardDraftAIGenerationMode = ""
@@ -200,33 +200,33 @@ class AppViewModel {
         )
     }
 
-    func applyChosenSubjects(_ subjects: [String]) {
-        chosenSubjects = uniqueSubjects(from: subjects)
+    func applyChosenstudyAreas(_ name: [String]) {
+        chosenstudyAreas = uniquestudyAreas(from: name)
 
-        if !activeSubject.isEmpty, chosenSubjects.contains(activeSubject) {
+        if !activestudyArea.isEmpty, chosenstudyAreas.contains(activestudyArea) {
             return
         }
 
-        activeSubject = chosenSubjects.first ?? ""
+        activestudyArea = chosenstudyAreas.first ?? ""
     }
 
-    func selectSubject(_ subject: String) {
-        activeSubject = subject
+    func selectstudyArea(_ name: String) {
+        activestudyArea = name
     }
 
-    private func uniqueSubjects(from subjects: [String]) -> [String] {
+    private func uniquestudyAreas(from studyAreas: [String]) -> [String] {
         var seen = Set<String>()
-        var orderedSubjects: [String] = []
+        var orderedstudyAreas: [String] = []
 
-        for subject in subjects {
-            let normalizedSubject = subject.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !normalizedSubject.isEmpty, !seen.contains(normalizedSubject) else { continue }
+        for studyArea in studyAreas {
+            let normalizedstudyArea = studyArea.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalizedstudyArea.isEmpty, !seen.contains(normalizedstudyArea) else { continue }
 
-            seen.insert(normalizedSubject)
-            orderedSubjects.append(normalizedSubject)
+            seen.insert(normalizedstudyArea)
+            orderedstudyAreas.append(normalizedstudyArea)
         }
 
-        return orderedSubjects
+        return orderedstudyAreas
     }
         
         //  fix to demo due to no Xcode Capability
@@ -307,5 +307,39 @@ class AppViewModel {
                 self.isLoggedIn = true
             }
         }
+    }
+    func recordStudyActivity(modelContext: ModelContext, users: [User]) {
+        // Id the current user
+        guard let email = currentUserEmail?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) else { return }
+        
+        if let user = users.first(where: { $0.email.lowercased() == email }) {
+            let calendar = Calendar.current
+            let now = Date.now
+            
+            // Prevent double-counting if they study multiple times in one day
+            if let lastDate = user.lastActivityDate, calendar.isDateInToday(lastDate) {
+                self.streakCount = user.streakCount
+                return
+            }
+            
+            // Increment if they studied yesterday, otherwise start/reset to 1
+            if let lastDate = user.lastActivityDate, calendar.isDateInYesterday(lastDate) {
+                user.streakCount += 1
+            } else {
+                user.streakCount = 1
+            }
+            
+            // Update the Model and persistent store
+            user.lastActivityDate = now
+            self.streakCount = user.streakCount
+            
+            try? modelContext.save()
+            print("DEBUG: Streak updated to \(self.streakCount) for \(email)")
+        }
+    }
+    func goHome() {
+        var path = NavigationPath()
+        path.append(NavTarget.home)
+        self.navPath = path
     }
 }

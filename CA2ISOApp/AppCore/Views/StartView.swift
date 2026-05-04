@@ -45,7 +45,7 @@ struct StartView: View {
                             .font(.system(size: 38, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
 
-                        Text("Turn your notes into smart flashcards, stay on top of your subjects, and build a daily study habit.")
+                        Text("Turn your notes into smart flashcards, stay on top of your studyAreas, and build a daily study habit.")
                             .font(.subheadline)
                             .foregroundColor(.white.opacity(0.88))
                             .multilineTextAlignment(.center)

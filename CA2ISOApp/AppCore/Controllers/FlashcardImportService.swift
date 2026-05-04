@@ -111,21 +111,21 @@ enum FlashcardImportService {
 
     nonisolated static func buildSet(
         title: String,
-        subject: String,
+        studyArea: String,
         topic: String,
         sourceType: String,
         text: String,
-        availableSubjects: [String] = [],
-        preferredSubject: String = ""
+        availablestudyAreas: [String] = [],
+        preferredstudyArea: String = ""
     ) throws -> FlashcardSet {
         let draftDeck = try buildLocalDraftDeck(
             title: title,
-            subject: subject,
+            studyArea: studyArea,
             topic: topic,
             sourceType: sourceType,
             text: text,
-            availableSubjects: availableSubjects,
-            preferredSubject: preferredSubject
+            availablestudyAreas: availablestudyAreas,
+            preferredstudyArea: preferredstudyArea
         )
 
         return try buildSet(from: draftDeck)
@@ -133,41 +133,41 @@ enum FlashcardImportService {
 
     nonisolated static func buildDraftDeck(
         title: String,
-        subject: String,
+        studyArea: String,
         topic: String,
         sourceType: String,
         text: String,
-        availableSubjects: [String] = [],
-        preferredSubject: String = ""
+        availablestudyAreas: [String] = [],
+        preferredstudyArea: String = ""
     ) throws -> FlashcardDeckDraft {
         try buildLocalDraftDeck(
             title: title,
-            subject: subject,
+            studyArea: studyArea,
             topic: topic,
             sourceType: sourceType,
             text: text,
-            availableSubjects: availableSubjects,
-            preferredSubject: preferredSubject
+            availablestudyAreas: availablestudyAreas,
+            preferredstudyArea: preferredstudyArea
         )
     }
 
     nonisolated static func buildDraftDeck(
         title: String,
-        subject: String,
+        studyArea: String,
         topic: String,
         sourceType: String,
         text: String,
-        availableSubjects: [String] = [],
-        preferredSubject: String = ""
+        availablestudyAreas: [String] = [],
+        preferredstudyArea: String = ""
     ) async throws -> FlashcardDeckDraft {
         let localDraftDeck = try buildLocalDraftDeck(
             title: title,
-            subject: subject,
+            studyArea: studyArea,
             topic: topic,
             sourceType: sourceType,
             text: text,
-            availableSubjects: availableSubjects,
-            preferredSubject: preferredSubject
+            availablestudyAreas: availablestudyAreas,
+            preferredstudyArea: preferredstudyArea
         )
 
         guard let provider = FlashcardAISettingsStore.configuredProvider() else {
@@ -194,12 +194,12 @@ enum FlashcardImportService {
 
     private nonisolated static func buildLocalDraftDeck(
         title: String,
-        subject: String,
+        studyArea: String,
         topic: String,
         sourceType: String,
         text: String,
-        availableSubjects: [String] = [],
-        preferredSubject: String = ""
+        availablestudyAreas: [String] = [],
+        preferredstudyArea: String = ""
     ) throws -> FlashcardDeckDraft {
         let normalizedOriginalText = normalizeText(text)
         guard !normalizedOriginalText.isEmpty else {
@@ -241,15 +241,15 @@ enum FlashcardImportService {
         let metadataSuggestion = FlashcardAIEnhancer.suggestMetadata(
             from: workingText,
             fallbackTitle: title,
-            availableSubjects: availableSubjects,
-            preferredSubject: preferredSubject.isEmpty ? subject : preferredSubject,
+            availablestudyAreas: availablestudyAreas,
+            preferredstudyArea: preferredstudyArea.isEmpty ? studyArea : preferredstudyArea,
             fallbackTopic: topic
         )
 
         return FlashcardDeckDraft(
             title: metadataSuggestion.title,
             sourceType: sourceType,
-            subject: metadataSuggestion.subject,
+            studyArea: metadataSuggestion.studyArea,
             topic: metadataSuggestion.topic,
             rawText: workingText,
             aiGenerationMode: "local",
@@ -270,7 +270,7 @@ enum FlashcardImportService {
         let resolvedSourceType = draftDeck.sourceType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? "Smart Generation"
             : draftDeck.sourceType.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedSubject = draftDeck.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedstudyArea = draftDeck.studyArea.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedTopic = draftDeck.topic.trimmingCharacters(in: .whitespacesAndNewlines)
         let resolvedRawText = normalizeText(
             draftDeck.rawText.isEmpty
@@ -284,7 +284,7 @@ enum FlashcardImportService {
         let flashcardSet = FlashcardSet(
             title: resolvedTitle,
             sourceType: resolvedSourceType,
-            subject: resolvedSubject,
+            studyArea: resolvedstudyArea,
             topic: resolvedTopic,
             rawText: resolvedRawText,
             aiGenerationMode: resolvedAIGenerationMode,
@@ -347,7 +347,7 @@ enum FlashcardImportService {
         return FlashcardDeckDraft(
             title: preferredMetadataValue(suggestion.title, fallback: localDraftDeck.title),
             sourceType: localDraftDeck.sourceType,
-            subject: preferredMetadataValue(suggestion.subject, fallback: localDraftDeck.subject),
+            studyArea: preferredMetadataValue(suggestion.studyArea, fallback: localDraftDeck.studyArea),
             topic: preferredMetadataValue(suggestion.topic, fallback: localDraftDeck.topic),
             rawText: localDraftDeck.rawText,
             aiGenerationMode: providerKind,
@@ -441,7 +441,7 @@ enum FlashcardImportService {
             requests.append(
                 FlashcardCloudGenerationRequest(
                     title: localDraftDeck.title,
-                    subject: localDraftDeck.subject,
+                    studyArea: localDraftDeck.studyArea,
                     topic: localDraftDeck.topic,
                     sourceType: localDraftDeck.sourceType,
                     text: normalizeText("\(section.title)\n\(section.body)"),
@@ -466,7 +466,7 @@ enum FlashcardImportService {
 
         return FlashcardCloudGenerationRequest(
             title: localDraftDeck.title,
-            subject: localDraftDeck.subject,
+            studyArea: localDraftDeck.studyArea,
             topic: localDraftDeck.topic,
             sourceType: localDraftDeck.sourceType,
             text: localDraftDeck.rawText,
@@ -489,18 +489,18 @@ enum FlashcardImportService {
         fallbackDeck: FlashcardDeckDraft
     ) -> FlashcardCloudDeckSuggestion {
         var resolvedTitle = fallbackDeck.title
-        var resolvedSubject = fallbackDeck.subject
+        var resolvedstudyArea = fallbackDeck.studyArea
         var resolvedTopic = fallbackDeck.topic
 
         for suggestion in suggestions {
             resolvedTitle = preferredMetadataValue(suggestion.title, fallback: resolvedTitle)
-            resolvedSubject = preferredMetadataValue(suggestion.subject, fallback: resolvedSubject)
+            resolvedstudyArea = preferredMetadataValue(suggestion.studyArea, fallback: resolvedstudyArea)
             resolvedTopic = preferredMetadataValue(suggestion.topic, fallback: resolvedTopic)
         }
 
         return FlashcardCloudDeckSuggestion(
             title: resolvedTitle,
-            subject: resolvedSubject,
+            studyArea: resolvedstudyArea,
             topic: resolvedTopic,
             cards: suggestions
                 .flatMap { suggestion in
@@ -1312,18 +1312,18 @@ enum FlashcardImportService {
             let range = NSRange(sentence.startIndex..<sentence.endIndex, in: sentence)
             guard let match = regex.firstMatch(in: sentence, options: [], range: range),
                   match.numberOfRanges == 3,
-                  let subjectRange = Range(match.range(at: 1), in: sentence),
+                  let studyAreaRange = Range(match.range(at: 1), in: sentence),
                   let remainderRange = Range(match.range(at: 2), in: sentence) else {
                 continue
             }
 
-            let subject = sentence[subjectRange].trimmingCharacters(in: .whitespacesAndNewlines)
+            let studyArea = sentence[studyAreaRange].trimmingCharacters(in: .whitespacesAndNewlines)
             let remainder = sentence[remainderRange].trimmingCharacters(in: .whitespacesAndNewlines)
 
-            guard isReasonablePrompt(subject), isSpecificStudyConcept(subject), remainder.count > 8 else { continue }
+            guard isReasonablePrompt(studyArea), isSpecificStudyConcept(studyArea), remainder.count > 8 else { continue }
 
             return FlashcardDraft(
-                question: "What is \(subject) used for?",
+                question: "What is \(studyArea) used for?",
                 answer: compressedAnswer(from: remainder.trimmingCharacters(in: CharacterSet(charactersIn: ". "))),
                 style: .how
             )

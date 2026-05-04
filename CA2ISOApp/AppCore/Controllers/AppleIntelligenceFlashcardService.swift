@@ -29,13 +29,13 @@ private enum AppleIntelligenceFlashcardError: LocalizedError {
 
 private struct AppleIntelligenceDeckPayload: Sendable {
     let title: String
-    let subject: String
+    let studyArea: String
     let topic: String
     let cards: [AppleIntelligenceCardPayload]
 
-    nonisolated init(title: String, subject: String, topic: String, cards: [AppleIntelligenceCardPayload]) {
+    nonisolated init(title: String, studyArea: String, topic: String, cards: [AppleIntelligenceCardPayload]) {
         self.title = title
-        self.subject = subject
+        self.studyArea = studyArea
         self.topic = topic
         self.cards = cards
     }
@@ -134,7 +134,7 @@ private struct AppleIntelligenceFlashcardProvider: FlashcardLLMProvider {
 
         return FlashcardCloudDeckSuggestion(
             title: cleanupInlineText(payload.title),
-            subject: cleanupInlineText(payload.subject),
+            studyArea: cleanupInlineText(payload.studyArea),
             topic: cleanupInlineText(payload.topic),
             cards: Array(cards.prefix(max(min(request.requestedCardCount, 18), 1)))
         )
@@ -226,7 +226,7 @@ private struct AppleIntelligenceFlashcardProvider: FlashcardLLMProvider {
         - Return only valid JSON with this exact shape and no markdown fences:
           {
             "title": "string",
-            "subject": "string",
+            "studyArea": "string",
             "topic": "string",
             "cards": [
               {
@@ -240,7 +240,7 @@ private struct AppleIntelligenceFlashcardProvider: FlashcardLLMProvider {
           }
 
         Requested title: \(fallbackValue(request.title, placeholder: "Smart Flashcards"))
-        Requested subject: \(fallbackValue(request.subject, placeholder: "Infer from the notes"))
+        Requested studyArea: \(fallbackValue(request.studyArea, placeholder: "Infer from the notes"))
         Requested topic: \(fallbackValue(request.topic, placeholder: "Infer from the notes"))
         Source type: \(fallbackValue(request.sourceType, placeholder: "Study material"))
         Focus section: \(fallbackValue(request.focusTitle, placeholder: "Whole document"))
@@ -293,7 +293,7 @@ private struct AppleIntelligenceFlashcardProvider: FlashcardLLMProvider {
           }
 
         Deck title: \(fallbackValue(deck.title, placeholder: "Untitled Deck"))
-        Deck subject: \(fallbackValue(deck.subject, placeholder: "No subject"))
+        Deck studyArea: \(fallbackValue(deck.studyArea, placeholder: "No studyArea"))
         Deck topic: \(fallbackValue(deck.topic, placeholder: "No topic"))
         Deck source type: \(fallbackValue(deck.sourceType, placeholder: "No source type"))
 
@@ -440,7 +440,7 @@ private struct AppleIntelligenceFlashcardProvider: FlashcardLLMProvider {
         let jsonObject = try JSONSerialization.jsonObject(with: data)
         guard let json = jsonObject as? [String: Any],
               let title = json["title"] as? String,
-              let subject = json["subject"] as? String,
+              let studyArea = json["studyArea"] as? String,
               let topic = json["topic"] as? String,
               let rawCards = json["cards"] as? [[String: Any]] else {
             throw AppleIntelligenceFlashcardError.decodingFailed
@@ -466,7 +466,7 @@ private struct AppleIntelligenceFlashcardProvider: FlashcardLLMProvider {
 
         return AppleIntelligenceDeckPayload(
             title: title,
-            subject: subject,
+            studyArea: studyArea,
             topic: topic,
             cards: cards
         )

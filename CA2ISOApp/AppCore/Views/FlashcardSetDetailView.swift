@@ -29,6 +29,9 @@ struct FlashcardSetDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.scenePhase) private var scenePhase
+    
+    @Environment(AppViewModel.self) private var viewModel
+    @Query var allUsers: [User]
 
     let flashcardSet: FlashcardSet
 
@@ -94,7 +97,12 @@ struct FlashcardSetDetailView: View {
                     },
                     starredAction: starredCardIDs.isEmpty || activeRound == .starredOnly ? nil : {
                         startRound(.starredOnly)
-                    }
+                    },
+                    finishAction: {
+                             
+                        viewModel.goHome()
+                           }
+                    
                 )
                 .padding(24)
             } else if let currentCard {
@@ -179,7 +187,7 @@ struct FlashcardSetDetailView: View {
 
                     FlashcardStudySummary(
                         title: flashcardSet.title,
-                        subject: flashcardSet.subject,
+                        studyArea: flashcardSet.studyArea,
                         sourceType: flashcardSet.sourceType,
                         aiGenerationMode: flashcardSet.aiGenerationMode,
                         aiModelID: flashcardSet.aiModelID,
@@ -329,7 +337,10 @@ struct FlashcardSetDetailView: View {
         } else {
             withAnimation(.easeInOut(duration: 0.2)) {
                 sessionComplete = true
+                
             }
+            print("DEBUG: Deck finished! Updating streak...")
+                    viewModel.recordStudyActivity(modelContext: modelContext, users: allUsers)
             finishSession()
         }
     }
@@ -375,7 +386,7 @@ struct FlashcardSetDetailView: View {
     private func recordStudyActivity() {
         StudyNotificationManager.recordStudyActivity(
             deckTitle: flashcardSet.title,
-            subject: flashcardSet.subject
+            studyArea: flashcardSet.studyArea
         )
     }
 
@@ -408,7 +419,7 @@ struct FlashcardSetDetailView: View {
         StudyNotificationManager.scheduleResumeStudy(
             deckID: notificationDeckID,
             deckTitle: flashcardSet.title,
-            subject: flashcardSet.subject,
+            studyArea: flashcardSet.studyArea,
             progressText: progressText
         )
     }
@@ -488,7 +499,7 @@ private struct StudyActionButtonLabel: View {
 
 private struct FlashcardStudySummary: View {
     let title: String
-    let subject: String
+    let studyArea: String
     let sourceType: String
     let aiGenerationMode: String
     let aiModelID: String
@@ -532,7 +543,7 @@ private struct FlashcardStudySummary: View {
     }
 
     private var summaryLine: String {
-        [subject, sourceType]
+        [studyArea, sourceType]
             .filter { !$0.isEmpty }
             .joined(separator: " • ")
     }
@@ -606,6 +617,7 @@ private struct FlashcardSessionCompleteView: View {
     let restartAction: () -> Void
     let reviewAction: (() -> Void)?
     let starredAction: (() -> Void)?
+    let finishAction: () -> Void
 
     var body: some View {
         VStack(spacing: 22) {
@@ -673,6 +685,12 @@ private struct FlashcardSessionCompleteView: View {
                         )
                 }
             }
+            Button(action: finishAction) {
+                            Text("Done")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 10)
+                        }
 
             Spacer()
         }

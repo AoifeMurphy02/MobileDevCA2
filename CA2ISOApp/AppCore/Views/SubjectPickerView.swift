@@ -2,19 +2,19 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-struct SubjectPickerView: View {
+struct studyAreaPickerView: View {
     @Environment(AppViewModel.self) private var viewModel
     @Environment(\.modelContext) private var modelContext
     @Query var allUsers: [User]
 
-    @State private var selectedSubjects: Set<String> = []
+    @State private var selectedstudyAreas: Set<String> = []
     @State private var navigateToHome = false
-    @State private var subjects = [
+    @State private var studyAreas = [
         "English", "French", "German", "Spanish", "Mathematics",
         "Physics", "Biology", "Chemistry", "Computer Science",
         "Geography", "History", "Business", "Music", "Art"
     ]
-    @State private var newSubjectName = ""
+    @State private var newstudyAreaName = ""
 
     private let columns = [
         GridItem(.adaptive(minimum: 140), spacing: 12)
@@ -38,11 +38,11 @@ struct SubjectPickerView: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Choose Your Subjects")
+                        Text("Choose Your studyAreas")
                             .font(.system(size: 30, weight: .bold, design: .rounded))
                             .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
 
-                        Text("Subjects act like study spaces. They organize your decks, power AI suggestions, and make the home screen easier to understand.")
+                        Text("studyAreas act like study spaces. They organize your decks, power AI suggestions, and make the home screen easier to understand.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
@@ -55,12 +55,12 @@ struct SubjectPickerView: View {
                     .padding(.bottom, 24)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Add a custom subject")
+                        Text("Add a custom studyArea")
                             .font(.headline)
                             .padding(.horizontal, 26)
 
                         HStack(spacing: 12) {
-                            TextField("Type a subject name", text: $newSubjectName)
+                            TextField("Type a studyArea name", text: $newstudyAreaName)
                                 .padding(14)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14)
@@ -68,30 +68,30 @@ struct SubjectPickerView: View {
                                 )
                                 .textInputAutocapitalization(.words)
 
-                            Button(action: addNewSubject) {
+                            Button(action: addNewstudyArea) {
                                 Image(systemName: "plus")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .frame(width: 48, height: 48)
                                     .background(
                                         Circle()
-                                            .fill(newSubjectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
+                                            .fill(newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
                                     )
                             }
-                            .disabled(newSubjectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .disabled(newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         }
                         .padding(.horizontal, 26)
                     }
 
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 12) {
-                            ForEach(subjects, id: \.self) { subject in
-                                SubjectSelectionChip(
-                                    title: subject,
-                                    isSelected: selectedSubjects.contains(subject)
+                            ForEach(studyAreas, id: \.self) { studyArea in
+                                studyAreaSelectionChip(
+                                    title: studyArea,
+                                    isSelected: selectedstudyAreas.contains(studyArea)
                                 )
                                 .onTapGesture {
-                                    toggleSubject(subject)
+                                    togglestudyArea(studyArea)
                                 }
                             }
                         }
@@ -101,19 +101,19 @@ struct SubjectPickerView: View {
                     }
 
                     VStack(spacing: 14) {
-                        Button(action: saveSubjectsAndContinue) {
-                            Text(selectedSubjects.isEmpty ? "Choose at Least One Subject" : continueButtonTitle)
+                        Button(action: savestudyAreasAndContinue) {
+                            Text(selectedstudyAreas.isEmpty ? "Choose at Least One studyArea" : continueButtonTitle)
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
-                                .background(selectedSubjects.isEmpty ? Color.gray : Color(red: 0.11, green: 0.49, blue: 0.95))
+                                .background(selectedstudyAreas.isEmpty ? Color.gray : Color(red: 0.11, green: 0.49, blue: 0.95))
                                 .clipShape(Capsule())
                         }
-                        .disabled(selectedSubjects.isEmpty)
+                        .disabled(selectedstudyAreas.isEmpty)
 
-                        if !viewModel.subjectOptions.isEmpty {
-                            Button("Keep Existing Subjects") {
+                        if !viewModel.studyAreaOptions.isEmpty {
+                            Button("Keep Existing studyAreas") {
                                 navigateToHome = true
                             }
                             .font(.subheadline.weight(.semibold))
@@ -134,7 +134,7 @@ struct SubjectPickerView: View {
         .toolbar(.hidden, for: .navigationBar)
         .enableSwipeBack()
         .onAppear {
-            syncSelectedSubjects()
+            syncSelectedstudyAreas()
         }
         .navigationDestination(isPresented: $navigateToHome) {
             HomeView()
@@ -142,52 +142,52 @@ struct SubjectPickerView: View {
     }
 
     private var continueButtonTitle: String {
-        viewModel.subjectOptions.isEmpty ? "Continue to Home" : "Save Subjects"
+        viewModel.studyAreaOptions.isEmpty ? "Continue to Home" : "Save studyAreas"
     }
 
-    private func syncSelectedSubjects() {
-        for subject in viewModel.subjectOptions {
-            if !subjects.contains(subject) {
-                subjects.insert(subject, at: 0)
+    private func syncSelectedstudyAreas() {
+        for studyArea in viewModel.studyAreaOptions {
+            if !studyAreas.contains(studyArea) {
+                studyAreas.insert(studyArea, at: 0)
             }
-            selectedSubjects.insert(subject)
+            selectedstudyAreas.insert(studyArea)
         }
     }
 
-    private func toggleSubject(_ subject: String) {
-        if selectedSubjects.contains(subject) {
-            selectedSubjects.remove(subject)
+    private func togglestudyArea(_ studyArea: String) {
+        if selectedstudyAreas.contains(studyArea) {
+            selectedstudyAreas.remove(studyArea)
         } else {
-            selectedSubjects.insert(subject)
+            selectedstudyAreas.insert(studyArea)
         }
     }
 
-    private func addNewSubject() {
-        let trimmedName = newSubjectName.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func addNewstudyArea() {
+        let trimmedName = newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !trimmedName.isEmpty, !subjects.contains(trimmedName) else { return }
+        guard !trimmedName.isEmpty, !studyAreas.contains(trimmedName) else { return }
 
         withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
-            subjects.insert(trimmedName, at: 0)
-            selectedSubjects.insert(trimmedName)
-            newSubjectName = ""
+            studyAreas.insert(trimmedName, at: 0)
+            selectedstudyAreas.insert(trimmedName)
+            newstudyAreaName = ""
         }
     }
 
-    private func saveSubjectsAndContinue() {
-        let orderedSelection = subjects.filter { selectedSubjects.contains($0) }
+    private func savestudyAreasAndContinue() {
+        let orderedSelection = studyAreas.filter { selectedstudyAreas.contains($0) }
 
-        viewModel.applyChosenSubjects(orderedSelection)
-        if let firstSubject = orderedSelection.first {
-            viewModel.selectSubject(firstSubject)
+        viewModel.applyChosenstudyAreas(orderedSelection)
+        if let firststudyArea = orderedSelection.first {
+            viewModel.selectstudyArea(firststudyArea)
         }
-        viewModel.persistSubjectsToDatabase(modelContext: modelContext, users: allUsers)
+        viewModel.persiststudyAreasToDatabase(modelContext: modelContext, users: allUsers)
 
         navigateToHome = true
     }
 }
 
-private struct SubjectSelectionChip: View {
+private struct studyAreaSelectionChip: View {
     let title: String
     let isSelected: Bool
 
@@ -218,7 +218,7 @@ private struct SubjectSelectionChip: View {
 
 #Preview {
     NavigationStack {
-        SubjectPickerView()
+        studyAreaPickerView()
             .environment(AppViewModel())
     }
 }
