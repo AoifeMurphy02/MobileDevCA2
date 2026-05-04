@@ -27,7 +27,7 @@ struct CreateFlashcardManualView: View {
        @Bindable var viewModel = viewModel
         
         ZStack(alignment: .bottom) {
-            Color(red: 0.98, green: 0.99, blue: 1.0).ignoresSafeArea()
+            AppTheme.background.ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 0) {
                 headerSection
@@ -93,7 +93,7 @@ struct CreateFlashcardManualView: View {
                 .padding(.horizontal, 25)
                 .padding(.top, 15)
                 .padding(.bottom, 10)
-                .background(Color.white.shadow(color: .black.opacity(0.05), radius: 5, y: -5))
+                .background(AppTheme.surface.shadow(color: .black.opacity(0.05), radius: 5, y: -5))
                 
                 CustomNavBar(selectedTab: 1)
             }
@@ -141,7 +141,7 @@ struct CreateFlashcardManualView: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
     }
@@ -180,7 +180,7 @@ struct CreateFlashcardManualView: View {
             }
         }
         .padding(18)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
     }
@@ -244,7 +244,7 @@ struct ManualCardEditor: View {
             ManualEditorTextBox(text: $card.answer, placeholder: "Answer...", minHeight: 100)
         }
         .padding(18)
-        .background(Color.white)
+        .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.04), radius: 10, y: 5)
     }
@@ -268,7 +268,7 @@ struct ManualEditorTextBox: View {
                 .frame(minHeight: minHeight)
                 .padding(10)
                 .scrollContentBackground(.hidden)
-                .background(Color(red: 0.98, green: 0.99, blue: 1.0))
+                .background(AppTheme.background)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
