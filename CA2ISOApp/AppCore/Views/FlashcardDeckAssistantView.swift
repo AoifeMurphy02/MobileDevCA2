@@ -231,13 +231,13 @@ struct FlashcardDeckAssistantView: View {
         )
 
         do {
-            guard let provider = FlashcardAISettingsStore.configuredProvider() else {
+            guard let configuredProvider = FlashcardAISettingsStore.configuredProvider() else {
                 throw NSError(domain: "FlashcardDeckAssistant", code: 1, userInfo: [
                     NSLocalizedDescriptionKey: "The selected AI mode is not ready yet."
                 ])
             }
 
-            let reply = try await provider.answerQuestion(
+            let reply = try await configuredProvider.provider.answerQuestion(
                 question,
                 about: deckContext,
                 recentTurns: recentTurns
