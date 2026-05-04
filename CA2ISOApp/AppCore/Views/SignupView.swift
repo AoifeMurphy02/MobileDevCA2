@@ -137,10 +137,7 @@ struct SignupView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .enableSwipeBack()
-        .navigationDestination(isPresented: $viewModel.isSignedUp) {
-            studyAreaPickerView()
-        }
+        .disableSwipeBack()
         .onAppear {
             viewModel.loginError = ""
         }
