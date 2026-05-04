@@ -15,7 +15,9 @@ import UniformTypeIdentifiers
 
 struct CreateFlashCardView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
+    @Query private var allUsers: [User]
     @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
 
     @State private var showDocumentScanner = false
@@ -32,9 +34,11 @@ struct CreateFlashCardView: View {
     @State private var importProgressMessage = "Analyzing your notes..."
 
     private var visibleFlashcardSets: [FlashcardSet] {
-        flashcardSets.filter { set in
-            set.ownerEmail.lowercased() == (viewModel.currentUserEmail ?? "").lowercased()
-        }
+        FlashcardSetVisibility.visibleSets(
+            flashcardSets,
+            currentUserEmail: viewModel.activeSessionEmailForUI,
+            totalUserCount: allUsers.count
+        )
     }
 
     var body: some View {
@@ -156,6 +160,9 @@ struct CreateFlashCardView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(cameraAlertMessage)
+        }
+        .onAppear {
+            viewModel.syncCurrentUserState(modelContext: modelContext)
         }
     }
 
