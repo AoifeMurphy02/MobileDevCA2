@@ -49,15 +49,15 @@ enum FlashcardConfidence: String, CaseIterable, Hashable, Codable, Sendable {
 
 @Model
 final class FlashcardSet {
-    var title: String
-    var ownerEmail: String
-    var sourceType: String
-    var studyArea: String
-    var topic: String
-    var rawText: String
-    var aiGenerationMode: String
-    var aiModelID: String
-    var createdAt: Date
+    var title: String = ""
+    var ownerEmail: String = ""
+    var sourceType: String = ""
+    var studyArea: String = ""
+    var topic: String = ""
+    var rawText: String = ""
+    var aiGenerationMode: String = ""
+    var aiModelID: String = ""
+    var createdAt: Date = Date.now
 
     @Relationship(deleteRule: .cascade, inverse: \Flashcard.parentSet)
     var cards: [Flashcard] = []
@@ -88,12 +88,12 @@ final class FlashcardSet {
 
 @Model
 final class Flashcard {
-    var question: String
-    var answer: String
-    var confidenceRawValue: String
-    var evidenceExcerpt: String
-    var orderIndex: Int
-    var isStarred: Bool
+    var question: String = ""
+    var answer: String = ""
+    var confidenceRawValue: String = FlashcardConfidence.medium.rawValue
+    var evidenceExcerpt: String = ""
+    var orderIndex: Int = 0
+    var isStarred: Bool = false
     var parentSet: FlashcardSet?
 
     var confidence: FlashcardConfidence {
@@ -218,5 +218,39 @@ struct FlashcardDeckDraft: Sendable {
         self.aiGenerationMode = aiGenerationMode
         self.aiModelID = aiModelID
         self.cards = cards
+    }
+}
+
+enum FlashcardSetVisibility {
+    nonisolated static func visibleSets(
+        _ sets: [FlashcardSet],
+        currentUserEmail: String?,
+        totalUserCount: Int,
+        activeStudyArea: String = ""
+    ) -> [FlashcardSet] {
+        let normalizedCurrentUserEmail = normalize(currentUserEmail)
+        guard !normalizedCurrentUserEmail.isEmpty else {
+            return []
+        }
+
+        let ownedSets = sets.filter { normalize($0.ownerEmail) == normalizedCurrentUserEmail }
+        let legacySets = totalUserCount <= 1
+            ? sets.filter { normalize($0.ownerEmail).isEmpty }
+            : []
+
+        let ownedSetIDs = Set(ownedSets.map(\.persistentModelID))
+        let combinedSets = ownedSets + legacySets.filter { !ownedSetIDs.contains($0.persistentModelID) }
+
+        guard !activeStudyArea.isEmpty else {
+            return combinedSets
+        }
+
+        return combinedSets.filter { $0.studyArea == activeStudyArea }
+    }
+
+    private nonisolated static func normalize(_ email: String?) -> String {
+        (email ?? "")
+            .lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
