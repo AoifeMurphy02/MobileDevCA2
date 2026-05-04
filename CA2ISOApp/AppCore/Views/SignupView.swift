@@ -1,7 +1,6 @@
 import Foundation
 import SwiftUI
 import SwiftData
-import AuthenticationServices
 
 struct SignupView: View {
     @Environment(AppViewModel.self) private var viewModel
@@ -71,6 +70,13 @@ struct SignupView: View {
                     }
                     .toggleStyle(CheckboxStyle())
                     .padding(.horizontal, 30)
+
+                    if !viewModel.loginError.isEmpty {
+                        Text(viewModel.loginError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 30)
+                    }
                     
                     // The sign up Button
                     
@@ -108,32 +114,8 @@ struct SignupView: View {
                                 SocialButton(imageName: "google")
                             }
                         }
-                                            
-                        // APPLE BUTTON
-                        ZStack {
-                            LoginSocialButton(imageName: "apple")
-                            
-                            SignInWithAppleButton(
-                                onRequest: { $0.requestedScopes = [.email, .fullName] },
-                                onCompletion: { result in
-                                    viewModel.handleAppleSignIn(result: result, modelContext: modelContext)
-                                }
-                            )
-                            .blendMode(.destinationOver)
-                            .frame(width: 45, height: 45)
-                            
-                            // Bypass for personal accounts
-                            Button(action: {
-                                print("DEBUG: Apple Bypass triggered")
-                                viewModel.mockAppleSignIn(modelContext: modelContext)
-                            }) {
-                                Circle().fill(Color.white.opacity(0.01))
-                            }
-                            .frame(width: 45, height: 45)
-                        }
-                    
-                                        }
-                                        .padding(.top, 10)
+                    }
+                    .padding(.top, 10)
 
                     NavigationLink(value: NavTarget.login) {
                         HStack(spacing: 4) {
@@ -159,6 +141,9 @@ struct SignupView: View {
         .navigationDestination(isPresented: $viewModel.isSignedUp) {
             studyAreaPickerView()
         }
+        .onAppear {
+            viewModel.loginError = ""
+        }
     }
 }
 
@@ -182,18 +167,10 @@ struct SocialButton: View {
             .frame(width: 45, height: 45)
             .shadow(color: .black.opacity(0.1), radius: 5)
             .overlay(
-                Group {
-                    if imageName == "apple" {
-                        Image(systemName: "applelogo")
-                            .font(.title3)
-                            .foregroundColor(.black)
-                    } else {
-                        Image(imageName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 25, height: 25)
-                    }
-                }
+                Image(imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 25, height: 25)
             )
     }
 }
