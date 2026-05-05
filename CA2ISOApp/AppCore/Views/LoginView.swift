@@ -39,12 +39,6 @@ struct LoginView: View {
                         .foregroundColor(AppTheme.primary)
                         .padding(.top, 30)
 
-                    Text("Sign in to open your study spaces, saved decks, and streak.")
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.text)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 36)
-                    
                     // Input Fields
                     Group {
                         HStack {
@@ -58,14 +52,7 @@ struct LoginView: View {
                         .padding()
                         .background(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.subtleBorder))
                         
-                        HStack {
-                            Image(systemName: "lock").foregroundColor(AppTheme.primary)
-                            SecureField("Password", text: $viewModel.password)
-                                .foregroundColor(AppTheme.text)
-                            Image(systemName: "eye.slash").foregroundColor(AppTheme.primary)
-                        }
-                        .padding()
-                        .background(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.subtleBorder))
+                        AuthPasswordField(password: $viewModel.password)
                     }
                     .padding(.horizontal, 30)
                     
@@ -170,6 +157,40 @@ struct LoginSocialButton: View {
                     .scaledToFit()
                     .frame(width: 25, height: 25)
             )
+    }
+}
+
+struct AuthPasswordField: View {
+    @Binding var password: String
+    @State private var isPasswordVisible = false
+
+    var body: some View {
+        HStack {
+            Image(systemName: "lock")
+                .foregroundColor(AppTheme.primary)
+
+            Group {
+                if isPasswordVisible {
+                    TextField("Password", text: $password)
+                } else {
+                    SecureField("Password", text: $password)
+                }
+            }
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled(true)
+            .foregroundColor(AppTheme.text)
+
+            Button {
+                isPasswordVisible.toggle()
+            } label: {
+                Image(systemName: isPasswordVisible ? "eye" : "eye.slash")
+                    .foregroundColor(AppTheme.primary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isPasswordVisible ? "Hide password" : "Show password")
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.subtleBorder))
     }
 }
 
