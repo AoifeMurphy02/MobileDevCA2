@@ -19,10 +19,14 @@ enum AppTheme {
     static let secondaryText = Color(uiColor: .secondaryLabel)
     static let subtleBorder = Color(uiColor: .separator).opacity(0.35)
     static let navBackground = Color(uiColor: .secondarySystemGroupedBackground)
+
+    static func roundedFont(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        .system(size: size, weight: weight, design: .rounded)
+    }
 }
 
 struct CustomNavBar: View {
-    // 0 = Home, 1 = Create, 2 = Timer
+    // 0 = Home, 1 = Create, 2 = Timer, 3 = Libraries
     var selectedTab: Int
     @Environment(AppViewModel.self) private var viewModel
     @State private var showProfileSheet = false
@@ -50,6 +54,17 @@ struct CustomNavBar: View {
                     isSelected: selectedTab == 1
                 ) {
                     viewModel.showCreateSheet = true
+                }
+
+                NavBarButton(
+                    iconName: selectedTab == 3 ? "building.columns.fill" : "building.columns",
+                    title: "Libraries",
+                    isSelected: selectedTab == 3
+                ) {
+                    viewModel.showCreateSheet = false
+
+                    guard selectedTab != 3 else { return }
+                    viewModel.navPath.append(NavTarget.libraries)
                 }
 
                 NavBarButton(
