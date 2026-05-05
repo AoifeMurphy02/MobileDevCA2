@@ -120,8 +120,6 @@ struct CreateFlashcardManualView: View {
     
     private var headerSection: some View {
         HStack(spacing: 15) {
-            Circle().fill(.gray.opacity(0.3)).frame(width: 45, height: 45)
-                .overlay(Image(systemName: "person.fill").foregroundColor(.white))
             Text("Deck Builder").font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.blue)
             Spacer()
         }
