@@ -15,16 +15,6 @@ struct CreatePracticeTestView: View {
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 15) {
-                    // Profile Image
-                    Circle()
-                        .fill(.gray.opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .foregroundColor(.white)
-                        )
-                        .clipShape(Circle())
-                    
                     Text("Create Practice Test")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
