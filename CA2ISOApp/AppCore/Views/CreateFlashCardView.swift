@@ -26,8 +26,7 @@ struct CreateFlashCardView: View {
     @State private var showAISettings = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var importErrorMessage = ""
-    @State private var showImportAlert = false
+    @State private var activeError: AppError?
     @State private var cameraAlertMessage = ""
     @State private var showCameraPermissionAlert = false
     @State private var showCameraSettingsAction = false
@@ -171,11 +170,7 @@ struct CreateFlashCardView: View {
                 selectedPhotoItem = nil
             }
         }
-        .alert("Import Failed", isPresented: $showImportAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(importErrorMessage)
-        }
+        .appErrorAlert($activeError)
         .alert("Camera Access Needed", isPresented: $showCameraPermissionAlert) {
             if showCameraSettingsAction {
                 Button("Open Settings") {
@@ -391,7 +386,7 @@ struct CreateFlashCardView: View {
             }.value
 
             viewModel.loadFlashcardDraft(draftDeck)
-            importErrorMessage = ""
+            activeError = nil
             isImporting = false
             viewModel.navPath.append(NavTarget.flashcardReview)
         } catch {
@@ -427,7 +422,7 @@ struct CreateFlashCardView: View {
             }.value
 
             viewModel.loadFlashcardDraft(draftDeck)
-            importErrorMessage = ""
+            activeError = nil
             isImporting = false
             viewModel.navPath.append(NavTarget.flashcardReview)
         } catch {
@@ -468,7 +463,7 @@ struct CreateFlashCardView: View {
 
             await MainActor.run {
                 viewModel.loadFlashcardDraft(draftDeck)
-                importErrorMessage = ""
+                activeError = nil
                 isImporting = false
                 viewModel.navPath.append(NavTarget.flashcardReview)
             }
@@ -504,7 +499,7 @@ struct CreateFlashCardView: View {
 
             await MainActor.run {
                 viewModel.loadFlashcardDraft(draftDeck)
-                importErrorMessage = ""
+                activeError = nil
                 isImporting = false
                 viewModel.navPath.append(NavTarget.flashcardReview)
             }
@@ -524,8 +519,7 @@ struct CreateFlashCardView: View {
 
     @MainActor
     private func presentError(_ message: String) {
-        importErrorMessage = message
-        showImportAlert = true
+        activeError = .importFailed(message)
     }
 
     private func openAppSettings() {
