@@ -33,12 +33,6 @@ struct SignupView: View {
                         .foregroundColor(AppTheme.primary)
                         .padding(.top, 30)
 
-                    Text("Create your account to organize studyAreas, build flashcard decks, and keep your study streak going.")
-                        .font(.subheadline)
-                        .foregroundColor(AppTheme.text)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 34)
-                    
                     // Email Field
                     HStack {
                         Image(systemName: "envelope")
@@ -54,16 +48,7 @@ struct SignupView: View {
                     .padding(.horizontal, 30)
                     
                     // Password Field
-                    HStack {
-                        Image(systemName: "lock")
-                            .foregroundColor(AppTheme.primary)
-                        SecureField("Password", text: $viewModel.password)
-                            .foregroundColor(AppTheme.text)
-                        Image(systemName: "eye.slash")
-                            .foregroundColor(AppTheme.primary)
-                    }
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.subtleBorder))
+                    AuthPasswordField(password: $viewModel.password)
                     .padding(.horizontal, 30)
                     
                     // T and C
