@@ -9,7 +9,6 @@ struct HomeView: View {
     @Query var allUsers: [User]
     @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
     
-    @State private var showProfileSheet = false
     @State private var dashboardFlashcardSets: [FlashcardSet] = []
     @State private var progressSnapshots: [String: FlashcardStudyProgressSnapshot] = [:]
 
@@ -62,18 +61,6 @@ struct HomeView: View {
         .sheet(isPresented: showSheet) {
             CreateResourceView().presentationDetents([.medium])
         }
-        .sheet(isPresented: $showProfileSheet) {
-            ProfileSheetView(
-                email: viewModel.activeSessionEmailForUI ?? "",
-                streakCount: viewModel.streakCount,
-                studyAreaCount: viewModel.studyAreaOptions.count,
-                logoutAction: {
-                    showProfileSheet = false
-                    viewModel.logout()
-                }
-            )
-            .presentationDetents([.medium])
-        }
         .onAppear {
             viewModel.syncCurrentUserState(modelContext: modelContext)
             refreshDashboardDecks()
@@ -101,27 +88,32 @@ struct HomeView: View {
     private var headerCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Welcome Back")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.white.opacity(0.82))
+                HStack(alignment: .center, spacing: 12) {
+                    Image("owl_mascot")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 50, height: 50)
+                        .background(Color.white.opacity(0.18))
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                        )
 
-                    Text(homeTitle)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Welcome Back")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.82))
+
+                        Text(homeTitle)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
                 }
 
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 6) {
-                    Button {
-                        showProfileSheet = true
-                    } label: {
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                    }
-
                     Label("\(viewModel.streakCount) day streak", systemImage: "flame.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.white)
@@ -190,11 +182,12 @@ struct HomeView: View {
                 .font(.headline)
 
             if visibleSets.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("No decks yet").font(.headline)
-                    Text("Start creating flashcards to build your library.").font(.subheadline).foregroundColor(.secondary)
-                }
-                .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(AppTheme.surface).clipShape(RoundedRectangle(cornerRadius: 20))
+                DashboardEmptyStateCard(
+                    icon: "rectangle.stack.badge.plus",
+                    title: "No decks yet",
+                    message: "Create AI flashcards or add a manual deck to start building your study library.",
+                    tint: AppTheme.primary
+                )
             } else {
                 ForEach(visibleSets.prefix(8)) { set in
                     NavigationLink(value: NavTarget.flashcardSetDetail(set)) {
@@ -229,6 +222,13 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
                 }
+            } else if !shouldShowDraftProgressCard {
+                DashboardEmptyStateCard(
+                    icon: "chart.line.uptrend.xyaxis",
+                    title: "No progress yet",
+                    message: "Study a deck and your learned cards, review cards, and progress will appear here.",
+                    tint: Color(red: 0.18, green: 0.63, blue: 0.35)
+                )
             }
         }
     }
@@ -237,7 +237,7 @@ struct HomeView: View {
     
     private var homeTitle: String {
         if let email = viewModel.activeSessionEmailForUI { return email.components(separatedBy: "@").first ?? email }
-        return "Study Hub"
+        return "SmartDeck"
     }
 
     private var headerDescription: String {
@@ -271,61 +271,45 @@ struct HomeView: View {
     }
 }
 
-private struct ProfileSheetView: View {
-    let email: String
-    let streakCount: Int
-    let studyAreaCount: Int
-    let logoutAction: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Profile")
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundColor(AppTheme.primary)
-
-            VStack(alignment: .leading, spacing: 12) {
-                ProfileInfoRow(title: "Signed in as", value: email.isEmpty ? "Unknown account" : email)
-                ProfileInfoRow(title: "Study spaces", value: "\(studyAreaCount)")
-                ProfileInfoRow(title: "Current streak", value: "\(streakCount) days")
-            }
-            .padding(18)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppTheme.background)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-
-            Button(role: .destructive, action: logoutAction) {
-                Text("Log Out")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.red)
-                    .clipShape(Capsule())
-            }
-
-            Spacer()
-        }
-        .padding(24)
-    }
-}
-
-private struct ProfileInfoRow: View {
+private struct DashboardEmptyStateCard: View {
+    let icon: String
     let title: String
-    let value: String
+    let message: String
+    let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(.secondary)
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(tint.opacity(0.12))
+                    .frame(width: 64, height: 64)
 
-            Text(value)
-                .font(.headline)
-                .foregroundColor(AppTheme.text)
+                Image(systemName: icon)
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(AppTheme.text)
+
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
     }
 }
-
 
 private struct studyAreaFilterChip: View {
     let title: String

@@ -64,23 +64,43 @@ struct CreateFlashCardView: View {
                         }
 
                         VStack(spacing: 16) {
-                            FlashcardActionButton(icon: "camera", title: "Scan document") {
+                            FlashcardActionButton(
+                                icon: "doc.viewfinder",
+                                title: "Scan a document",
+                                subtitle: "Use your camera to capture printed notes or worksheets."
+                            ) {
                                 beginDocumentScan()
                             }
 
-                            FlashcardActionButton(icon: "paperclip", title: "Select file") {
+                            FlashcardActionButton(
+                                icon: "folder",
+                                title: "Choose a file",
+                                subtitle: "Import a PDF, text file, or saved image from Files."
+                            ) {
                                 showFileImporter = true
                             }
 
-                            FlashcardActionButton(icon: "doc.text", title: "Paste text") {
+                            FlashcardActionButton(
+                                icon: "text.quote",
+                                title: "Paste notes",
+                                subtitle: "Paste lecture notes, summaries, or study material."
+                            ) {
                                 showPasteTextSheet = true
                             }
 
-                            FlashcardActionButton(icon: "square.and.pencil", title: "Create manually") {
+                            FlashcardActionButton(
+                                icon: "rectangle.and.pencil.and.ellipsis",
+                                title: "Create manually",
+                                subtitle: "Write your own questions and answers from scratch."
+                            ) {
                                 viewModel.navPath.append(NavTarget.createFlashcardsManually)
                             }
 
-                            FlashcardActionButton(icon: "photo", title: "Select image") {
+                            FlashcardActionButton(
+                                icon: "photo.on.rectangle",
+                                title: "Choose an image",
+                                subtitle: "Pick a photo of notes and let the app read the text."
+                            ) {
                                 showPhotoPicker = true
                             }
                         }
@@ -174,15 +194,6 @@ struct CreateFlashCardView: View {
 
     private var header: some View {
         HStack(spacing: 15) {
-            Circle()
-                .fill(.gray.opacity(0.3))
-                .frame(width: 50, height: 50)
-                .overlay(
-                    Image(systemName: "person.fill")
-                        .foregroundColor(.white)
-                )
-                .clipShape(Circle())
-
             VStack(alignment: .leading, spacing: 4) {
                 Text("Create Flashcards")
                     .font(.system(size: 26, weight: .bold, design: .rounded))
@@ -536,11 +547,11 @@ struct CreateFlashCardView: View {
     private var headerSubtitle: String {
         switch activeAIMode {
         case .local:
-            return "Stronger on-device AI for notes, files, scans, and images."
+            return "Turn notes, files, scans, and images into editable study cards."
         case .appleIntelligence:
-            return "Grounded flashcards with Apple Intelligence on device."
+            return "Create source-based cards with Apple Intelligence support."
         case .openAI:
-            return "Grounded AI plus OpenAI for files, scans, images, and pasted notes."
+            return "Create clearer cards from your study material using AI."
         }
     }
 
@@ -556,11 +567,11 @@ struct CreateFlashCardView: View {
     private var introDescription: String {
         switch activeAIMode {
         case .local:
-            return "The app filters weak source text, ranks stronger concepts, suggests a studyArea and topic, and turns your material into cleaner question-and-answer flashcards before you review the deck."
+            return "Choose how you want to add study material. You can review and edit every card before saving."
         case .appleIntelligence:
-            return "The app grounds itself in your source text first, then uses Apple Intelligence on device to improve card quality, coverage, and phrasing while keeping the local fallback."
+            return "Your source text is checked first, then Apple Intelligence helps improve the wording before you review the deck."
         case .openAI:
-            return "The app now grounds itself in your source text first, then uses OpenAI to improve question quality, card coverage, and follow-up chat support without dropping the local fallback."
+            return "Your source text is checked first, then AI helps improve question quality before you review the deck."
         }
     }
 
@@ -710,40 +721,58 @@ struct FlashcardResumeDraftCard: View {
 struct FlashcardActionButton: View {
     var icon: String
     var title: String
+    var subtitle: String
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            FlashcardActionRow(icon: icon, title: title)
+            FlashcardActionRow(icon: icon, title: title, subtitle: subtitle)
         }
+        .buttonStyle(.plain)
     }
 }
 
 struct FlashcardActionRow: View {
     var icon: String
     var title: String
+    var subtitle: String
 
     var body: some View {
         HStack(spacing: 15) {
-            Image(systemName: icon)
-                .font(.system(size: 22, weight: .semibold))
-                .frame(width: 30)
+            RoundedRectangle(cornerRadius: 16)
+                .fill(AppTheme.primary.opacity(0.12))
+                .frame(width: 54, height: 54)
+                .overlay(
+                    Image(systemName: icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(AppTheme.primary)
+                )
 
-            Text(title)
-                .font(.system(size: 18, weight: .bold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(AppTheme.text)
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.secondaryText)
+                    .multilineTextAlignment(.leading)
+            }
 
             Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundColor(AppTheme.secondaryText)
         }
-        .foregroundColor(AppTheme.text)
-        .padding(.vertical, 18)
-        .padding(.horizontal, 20)
+        .padding(16)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
-        )
         .background(AppTheme.surface)
-        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
 }
 

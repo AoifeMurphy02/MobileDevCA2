@@ -24,7 +24,7 @@ struct CreateResourceView: View {
                                     .font(.system(size: 24, weight: .bold, design: .rounded))
                                     .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
 
-                                Text("Jump into the parts of the app that are ready to use right now.")
+                                Text("Choose how you want to build your next deck.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
@@ -69,15 +69,6 @@ struct CreateResourceView: View {
                             viewModel.showCreateSheet = false
                         }
 
-                        ResourceActionButton(
-                            title: "Study Timer",
-                            subtitle: "Open a focus timer and keep your study streak going.",
-                            icon: "timer",
-                            iconColor: .orange
-                        ) {
-                            viewModel.pendingNavigation = .timer
-                            viewModel.showCreateSheet = false
-                        }
                     }
                     .padding(.horizontal, 28)
                     .padding(.top, 8)

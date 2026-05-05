@@ -11,7 +11,6 @@ import SwiftUI
 private enum FlashcardStudyRound {
     case all
     case reviewOnly
-    case starredOnly
 
     var title: String {
         switch self {
@@ -19,8 +18,6 @@ private enum FlashcardStudyRound {
             return "Full Deck"
         case .reviewOnly:
             return "Still Learning"
-        case .starredOnly:
-            return "Starred Cards"
         }
     }
 }
@@ -45,6 +42,8 @@ struct FlashcardSetDetailView: View {
     @State private var currentIndex = 0
     @State private var showAnswer = false
     @State private var cardRotation = 0.0
+    @State private var dragOffset: CGSize = .zero
+    @State private var isCardExpanded = false
     @State private var sessionComplete = false
     @State private var masteredCardIDs: Set<PersistentIdentifier> = []
     @State private var reviewCardIDs: Set<PersistentIdentifier> = []
@@ -58,12 +57,6 @@ struct FlashcardSetDetailView: View {
         let cardLookup = Dictionary(uniqueKeysWithValues: orderedCards.map { ($0.persistentModelID, $0) })
         let resolvedIDs = studyCardIDs.isEmpty ? orderedCards.map(\.persistentModelID) : studyCardIDs
         return resolvedIDs.compactMap { cardLookup[$0] }
-    }
-
-    private var starredCardIDs: [PersistentIdentifier] {
-        orderedCards
-            .filter(\.isStarred)
-            .map(\.persistentModelID)
     }
 
     private var currentCard: Flashcard? {
@@ -100,107 +93,97 @@ struct FlashcardSetDetailView: View {
                     reviewAction: reviewCardIDs.isEmpty || activeRound == .reviewOnly ? nil : {
                         startRound(.reviewOnly)
                     },
-                    starredAction: starredCardIDs.isEmpty || activeRound == .starredOnly ? nil : {
-                        startRound(.starredOnly)
-                    },
                     finishAction: {
-                             
+                        dismiss()
                         viewModel.goHome()
-                           }
+                    }
                     
                 )
                 .padding(24)
             } else if let currentCard {
-                VStack(spacing: 18) {
-                    header(for: currentCard)
-                    statusDots
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 18) {
+                        header
+                        statusDots
 
-                    Spacer()
-
-                    FlashcardStudyCard(
-                        question: currentCard.question,
-                        answer: currentCard.answer,
-                        showAnswer: showAnswer,
-                        rotation: cardRotation,
-                        isStarred: currentCard.isStarred
-                    )
-                    .padding(.horizontal, 36)
-                    .onTapGesture {
-                        revealAnswer()
-                    }
-                    .gesture(
-                        DragGesture(minimumDistance: 40)
-                            .onEnded { value in
-                                guard showAnswer else { return }
-
-                                if value.translation.width < -60 {
-                                    markStillLearning()
-                                } else if value.translation.width > 60 {
-                                    markMastered()
+                        FlashcardStudyCard(
+                            question: currentCard.question,
+                            answer: currentCard.answer,
+                            showAnswer: showAnswer,
+                            rotation: cardRotation,
+                            dragOffset: dragOffset,
+                            isExpanded: isCardExpanded,
+                            toggleExpanded: {
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    isCardExpanded.toggle()
                                 }
                             }
-                    )
-
-                    Text(showAnswer ? "Swipe left for still learning or right for got it" : "Tap the card to reveal the answer")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 8)
-
-                    if showAnswer {
-                        HStack(spacing: 14) {
-                            Button {
-                                markStillLearning()
-                            } label: {
-                                StudyActionButtonLabel(
-                                    title: "Still Learning",
-                                    tint: Color(red: 0.98, green: 0.48, blue: 0.43)
-                                )
-                            }
-
-                            Button {
-                                markMastered()
-                            } label: {
-                                StudyActionButtonLabel(
-                                    title: "Got It",
-                                    tint: Color(red: 0.45, green: 0.81, blue: 0.49)
-                                )
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 10)
-
-                        FlashcardCardInsightPanel(card: currentCard)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 4)
-                    } else {
-                        Button {
+                        )
+                        .padding(.horizontal, 28)
+                        .padding(.top, 14)
+                        .onTapGesture {
                             revealAnswer()
-                        } label: {
-                            Text("Reveal Answer")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color(red: 0.25, green: 0.53, blue: 0.94))
-                                .clipShape(Capsule())
                         }
-                        .padding(.horizontal, 36)
-                        .padding(.top, 10)
+                        .highPriorityGesture(cardSwipeGesture)
+
+                        SwipeInstructionView(showAnswer: showAnswer)
+                            .padding(.horizontal, 28)
+                            .padding(.top, 4)
+
+                        if showAnswer {
+                            HStack(spacing: 14) {
+                                Button {
+                                    animateCardAway(toRight: false)
+                                } label: {
+                                    StudyActionButtonLabel(
+                                        title: "Still Learning",
+                                        tint: Color(red: 0.98, green: 0.48, blue: 0.43)
+                                    )
+                                }
+
+                                Button {
+                                    animateCardAway(toRight: true)
+                                } label: {
+                                    StudyActionButtonLabel(
+                                        title: "Got It",
+                                        tint: Color(red: 0.45, green: 0.81, blue: 0.49)
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 10)
+
+                            FlashcardCardInsightPanel(card: currentCard)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 4)
+                        } else {
+                            Button {
+                                revealAnswer()
+                            } label: {
+                                Text("Reveal Answer")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(Color(red: 0.25, green: 0.53, blue: 0.94))
+                                    .clipShape(Capsule())
+                            }
+                            .padding(.horizontal, 36)
+                            .padding(.top, 10)
+                        }
+
+                        FlashcardStudySummary(
+                            title: flashcardSet.title,
+                            studyArea: flashcardSet.studyArea,
+                            sourceType: flashcardSet.sourceType,
+                            aiGenerationMode: flashcardSet.aiGenerationMode,
+                            aiModelID: flashcardSet.aiModelID,
+                            masteredCount: masteredCardIDs.count,
+                            reviewCount: reviewCardIDs.count
+                        )
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 28)
                     }
-
-                    Spacer()
-
-                    FlashcardStudySummary(
-                        title: flashcardSet.title,
-                        studyArea: flashcardSet.studyArea,
-                        sourceType: flashcardSet.sourceType,
-                        aiGenerationMode: flashcardSet.aiGenerationMode,
-                        aiModelID: flashcardSet.aiModelID,
-                        masteredCount: masteredCardIDs.count,
-                        reviewCount: reviewCardIDs.count
-                    )
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 20)
                 }
             } else {
                 ContentUnavailableView(
@@ -262,15 +245,21 @@ struct FlashcardSetDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func header(for card: Flashcard) -> some View {
+    private var header: some View {
         HStack {
             Button {
                 dismiss()
             } label: {
-                Image(systemName: "arrow.left")
+                Image(systemName: "chevron.left")
                     .font(.headline)
-                    .foregroundColor(Color(red: 0.43, green: 0.63, blue: 0.98))
+                    .foregroundColor(AppTheme.primary)
+                    .frame(width: 42, height: 42)
+                    .background(AppTheme.surface)
+                    .clipShape(Circle())
+                    .overlay(
+                        Circle()
+                            .stroke(AppTheme.subtleBorder, lineWidth: 1)
+                    )
             }
 
             Spacer()
@@ -281,13 +270,10 @@ struct FlashcardSetDetailView: View {
 
             Spacer()
 
-            Button {
-                toggleStar(for: card)
-            } label: {
-                Image(systemName: card.isStarred ? "star.fill" : "star")
-                    .font(.headline)
-                    .foregroundColor(Color(red: 0.23, green: 0.26, blue: 0.74))
-            }
+            Image(systemName: "rectangle.stack.fill")
+                .font(.headline)
+                .foregroundColor(Color(red: 0.43, green: 0.63, blue: 0.98))
+                .frame(width: 42, height: 42)
         }
         .padding(.horizontal, 24)
         .padding(.top, 16)
@@ -318,6 +304,52 @@ struct FlashcardSetDetailView: View {
         }
     }
 
+    private var cardSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 16)
+            .onChanged { value in
+                guard showAnswer else { return }
+                dragOffset = value.translation
+            }
+            .onEnded { value in
+                guard showAnswer else {
+                    resetCardMotion()
+                    return
+                }
+
+                let swipeWidth = value.predictedEndTranslation.width
+                if swipeWidth < -95 {
+                    animateCardAway(toRight: false)
+                } else if swipeWidth > 95 {
+                    animateCardAway(toRight: true)
+                } else {
+                    resetCardMotion()
+                }
+            }
+    }
+
+    private func animateCardAway(toRight: Bool) {
+        let exitX: CGFloat = toRight ? 900 : -900
+        let exitY = dragOffset.height
+
+        withAnimation(.easeIn(duration: 0.22)) {
+            dragOffset = CGSize(width: exitX, height: exitY)
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            if toRight {
+                markMastered()
+            } else {
+                markStillLearning()
+            }
+        }
+    }
+
+    private func resetCardMotion() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
+            dragOffset = .zero
+        }
+    }
+
     private func markStillLearning() {
         guard let currentCard else { return }
         reviewCardIDs.insert(currentCard.persistentModelID)
@@ -341,6 +373,9 @@ struct FlashcardSetDetailView: View {
     }
 
     private func moveToNextCard() {
+        dragOffset = .zero
+        isCardExpanded = false
+
         if currentIndex < activeCards.count - 1 {
             currentIndex += 1
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -358,17 +393,14 @@ struct FlashcardSetDetailView: View {
         }
     }
 
-    private func toggleStar(for card: Flashcard) {
-        card.isStarred.toggle()
-        try? modelContext.save()
-    }
-
     private func startRound(_ round: FlashcardStudyRound, resetProgress: Bool = false) {
         activeRound = round
         studyCardIDs = cardIDs(for: round)
         currentIndex = 0
         showAnswer = false
         cardRotation = 0
+        dragOffset = .zero
+        isCardExpanded = false
         sessionComplete = false
         StudyNotificationManager.cancelResumeStudy(for: notificationDeckID)
 
@@ -391,8 +423,6 @@ struct FlashcardSetDetailView: View {
             return orderedCards
                 .filter { reviewCardIDs.contains($0.persistentModelID) }
                 .map(\.persistentModelID)
-        case .starredOnly:
-            return starredCardIDs
         }
     }
 
@@ -413,6 +443,8 @@ struct FlashcardSetDetailView: View {
         activeRound = .all
         showAnswer = false
         cardRotation = 0
+        dragOffset = .zero
+        isCardExpanded = false
     }
 
     private func cardIDs(from orderIndexes: [Int]?) -> Set<PersistentIdentifier> {
@@ -493,40 +525,163 @@ private struct FlashcardStudyCard: View {
     let answer: String
     let showAnswer: Bool
     let rotation: Double
-    let isStarred: Bool
+    let dragOffset: CGSize
+    let isExpanded: Bool
+    let toggleExpanded: () -> Void
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 24)
-                .fill(showAnswer ? AppTheme.secondarySurface : Color(red: 0.47, green: 0.67, blue: 0.95))
-                .shadow(color: .black.opacity(0.08), radius: 18, y: 10)
+                .fill(baseCardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(swipeTint.opacity(swipeOpacity))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .stroke(borderColor, lineWidth: showAnswer ? 1.4 : 1.1)
+                )
+                .shadow(color: swipeTint.opacity(swipeOpacity * 0.45), radius: 28, y: 14)
+                .shadow(color: .black.opacity(0.12), radius: 18, y: 10)
 
-            VStack(spacing: 18) {
-                Spacer()
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label(showAnswer ? "Answer" : "Question", systemImage: showAnswer ? "checkmark.message.fill" : "questionmark.bubble.fill")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundColor(showAnswer ? AppTheme.primary : .white.opacity(0.92))
 
-                Text(showAnswer ? answer : question)
-                    .font(.system(size: showAnswer ? 30 : 32, weight: .bold, design: .rounded))
-                    .foregroundColor(showAnswer ? .black : .white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 18)
-                    .rotation3DEffect(
-                        .degrees(showAnswer ? 180 : 0),
-                        axis: (x: 0, y: 1, z: 0)
-                    )
+                    Spacer()
 
-                Spacer()
+                    if shouldShowExpandButton {
+                        Button(action: toggleExpanded) {
+                            Label(isExpanded ? "Collapse" : "Expand", systemImage: isExpanded ? "chevron.up" : "arrow.up.left.and.arrow.down.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(showAnswer ? AppTheme.primary : .white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background((showAnswer ? AppTheme.primary : Color.white).opacity(showAnswer ? 0.12 : 0.18))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+
+                if showAnswer {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Answer")
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .textCase(.uppercase)
+
+                        Text(answer)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(AppTheme.text)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(isExpanded ? nil : 8)
+                            .minimumScaleFactor(0.78)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    Divider()
+                        .background(AppTheme.subtleBorder)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Question")
+                            .font(.caption.weight(.bold))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .textCase(.uppercase)
+
+                        Text(question)
+                            .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            .foregroundColor(AppTheme.secondaryText)
+                            .lineLimit(isExpanded ? nil : 3)
+                            .minimumScaleFactor(0.82)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                } else {
+                    Text(question)
+                        .font(.system(size: 29, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(isExpanded ? nil : 8)
+                        .minimumScaleFactor(0.78)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Spacer(minLength: 0)
+
+                    Text("Tap to reveal, then swipe the full card.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.white.opacity(0.8))
+                }
             }
-            .padding(.vertical, 28)
+            .padding(28)
+
+            if showAnswer {
+                swipeBadge
+            }
         }
-        .frame(height: 420)
-        .rotation3DEffect(
-            .degrees(rotation),
-            axis: (x: 0, y: 1, z: 0)
-        )
-        .overlay(alignment: .topTrailing) {
-            Image(systemName: isStarred ? "star.fill" : "star")
-                .foregroundColor(showAnswer ? Color(red: 0.23, green: 0.26, blue: 0.74) : .white.opacity(0.9))
-                .padding(20)
+        .frame(minHeight: 420, maxHeight: isExpanded ? nil : 420, alignment: .top)
+        .contentShape(RoundedRectangle(cornerRadius: 24))
+        .offset(dragOffset)
+        .rotationEffect(.degrees(Double(dragOffset.width / 14)))
+        .scaleEffect(dragOffset == .zero ? 1 : 0.97)
+        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+    }
+
+    private var baseCardBackground: Color {
+        showAnswer ? AppTheme.surface : Color(red: 0.12, green: 0.35, blue: 0.82)
+    }
+
+    private var shouldShowExpandButton: Bool {
+        if showAnswer {
+            return needsExpansion(answer, characterLimit: 180, lineLimit: 5) ||
+                needsExpansion(question, characterLimit: 120, lineLimit: 3)
+        }
+
+        return needsExpansion(question, characterLimit: 180, lineLimit: 6)
+    }
+
+    private func needsExpansion(_ text: String, characterLimit: Int, lineLimit: Int) -> Bool {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let explicitLineCount = trimmedText
+            .components(separatedBy: .newlines)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+            .count
+        let estimatedWrappedLineCount = Int(ceil(Double(trimmedText.count) / 34.0))
+
+        return trimmedText.count > characterLimit ||
+            explicitLineCount > lineLimit ||
+            estimatedWrappedLineCount > lineLimit
+    }
+
+    private var borderColor: Color {
+        if swipeOpacity > 0.15 { return swipeTint.opacity(0.85) }
+        return showAnswer ? AppTheme.subtleBorder : Color.white.opacity(0.25)
+    }
+
+    private var swipeTint: Color {
+        dragOffset.width >= 0 ? Color(red: 0.18, green: 0.72, blue: 0.36) : Color(red: 0.96, green: 0.26, blue: 0.24)
+    }
+
+    private var swipeOpacity: Double {
+        min(Double(abs(dragOffset.width) / 150), 1)
+    }
+
+    @ViewBuilder
+    private var swipeBadge: some View {
+        if abs(dragOffset.width) > 28 {
+            let isMastered = dragOffset.width > 0
+            Text(isMastered ? "Got It" : "Review")
+                .font(.headline.weight(.black))
+                .foregroundColor(isMastered ? Color.green : Color.red)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .overlay(
+                    Capsule()
+                        .stroke(isMastered ? Color.green : Color.red, lineWidth: 2)
+                )
+                .rotationEffect(.degrees(isMastered ? 10 : -10))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: isMastered ? .topLeading : .topTrailing)
+                .padding(24)
         }
     }
 }
@@ -545,6 +700,40 @@ private struct StudyActionButtonLabel: View {
                 Capsule()
                     .stroke(tint.opacity(0.7), lineWidth: 1.5)
             )
+    }
+}
+
+private struct SwipeInstructionView: View {
+    let showAnswer: Bool
+
+    var body: some View {
+        if showAnswer {
+            HStack(spacing: 12) {
+                SwipeHintPill(icon: "arrow.left", title: "Still learning", tint: Color(red: 0.98, green: 0.48, blue: 0.43))
+                SwipeHintPill(icon: "arrow.right", title: "Got it", tint: Color(red: 0.45, green: 0.81, blue: 0.49))
+            }
+        } else {
+            Label("Tap the card to reveal the answer", systemImage: "hand.tap.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(AppTheme.secondaryText)
+                .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+private struct SwipeHintPill: View {
+    let icon: String
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        Label(title, systemImage: icon)
+            .font(.caption.weight(.bold))
+            .foregroundColor(tint)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(tint.opacity(0.12))
+            .clipShape(Capsule())
     }
 }
 
@@ -667,7 +856,6 @@ private struct FlashcardSessionCompleteView: View {
     let restartLabel: String
     let restartAction: () -> Void
     let reviewAction: (() -> Void)?
-    let starredAction: (() -> Void)?
     let finishAction: () -> Void
 
     var body: some View {
@@ -723,25 +911,17 @@ private struct FlashcardSessionCompleteView: View {
                 }
             }
 
-            if let starredAction {
-                Button(action: starredAction) {
-                    Text("Study Starred Cards")
-                        .font(.headline)
-                        .foregroundColor(Color(red: 0.23, green: 0.26, blue: 0.74))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .overlay(
-                            Capsule()
-                                .stroke(Color(red: 0.23, green: 0.26, blue: 0.74).opacity(0.35), lineWidth: 1.4)
-                        )
-                }
-            }
             Button(action: finishAction) {
-                            Text("Done")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                                .padding(.top, 10)
-                        }
+                Text("Done")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .overlay(
+                        Capsule()
+                            .stroke(AppTheme.primary.opacity(0.35), lineWidth: 1.4)
+                    )
+            }
 
             Spacer()
         }
