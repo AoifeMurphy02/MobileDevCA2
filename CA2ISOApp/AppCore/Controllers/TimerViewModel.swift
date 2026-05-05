@@ -6,6 +6,7 @@ class TimerViewModel {
     
     
     var timeRemaining = 1500 // 25 minutes
+    private var selectedDurationSeconds = 1500
     var isActive = false
     var timer: Timer?
     var hasFinishedSession = false
@@ -37,7 +38,7 @@ class TimerViewModel {
         timer?.invalidate()
         StudyNotificationManager.cancelTimerComplete()
         isActive = false
-        timeRemaining = 1500
+        timeRemaining = selectedDurationSeconds
     }
     
    // func timerFinished() {
@@ -60,7 +61,8 @@ class TimerViewModel {
         isActive = false
         
         // Set the new time (Minutes * 60 seconds)
-        self.timeRemaining = minutes * 60
+        selectedDurationSeconds = minutes * 60
+        timeRemaining = selectedDurationSeconds
     }
 
 }
