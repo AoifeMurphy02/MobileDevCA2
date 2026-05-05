@@ -224,7 +224,7 @@ struct FlashcardReviewView: View {
     private var actionSection: some View {
         VStack(spacing: 14) {
             Button {
-                saveDeck()
+                saveDeck(openForStudy: true)
             } label: {
                 Text("Save and Study")
                     .font(.headline)
@@ -235,19 +235,19 @@ struct FlashcardReviewView: View {
                     .clipShape(Capsule())
             }
 
-//            Button {
-//                self.viewModel.addEmptyFlashcardDraft(style: .summary)
-//            } label: {
-//                Text("Add Another Card")
-//                    .font(.headline)
-//                    .foregroundColor(Color(red: 0.25, green: 0.53, blue: 0.94))
-//                    .frame(maxWidth: .infinity)
-//                    .padding(.vertical, 16)
-//                    .overlay(
-//                        Capsule()
-//                            .stroke(Color(red: 0.25, green: 0.53, blue: 0.94).opacity(0.4), lineWidth: 1.4)
-//                    )
-//            }
+            Button {
+                saveDeck(openForStudy: false)
+            } label: {
+                Text("Save for Later")
+                    .font(.headline)
+                    .foregroundColor(AppTheme.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .overlay(
+                        Capsule()
+                            .stroke(AppTheme.primary.opacity(0.35), lineWidth: 1.4)
+                    )
+            }
         }
     }
 
@@ -299,7 +299,7 @@ struct FlashcardReviewView: View {
         self.viewModel.flashcardDraftCards.insert(card, at: newIndex)
     }
 
-    private func saveDeck() {
+    private func saveDeck(openForStudy: Bool) {
         // 1. Validation: Ensure we actually have cards to save
         guard !viewModel.flashcardDraftCards.isEmpty else {
             self.errorMessage = "Please add at least one card to the deck."
@@ -359,11 +359,14 @@ struct FlashcardReviewView: View {
             draftWasFinalized = true
             StudyNotificationManager.cancelDraftReviewReminder()
 
-            // 4. Navigate
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                self.savedFlashcardSet = flashcardSet
-                self.shouldOpenSavedDeck = true
-                
+                if openForStudy {
+                    self.savedFlashcardSet = flashcardSet
+                    self.shouldOpenSavedDeck = true
+                } else {
+                    viewModel.goHome()
+                }
+
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     viewModel.clearFlashcardDraft()
                 }
@@ -400,6 +403,8 @@ private struct FlashcardEditorCard: View {
     let moveDown: () -> Void
     let deleteAction: () -> Void
 
+    @State private var isExpanded = true
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
@@ -423,6 +428,14 @@ private struct FlashcardEditorCard: View {
                 Spacer()
 
                 HStack(spacing: 12) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                    } label: {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    }
+
                     Button(action: moveUp) {
                         Image(systemName: "arrow.up")
                     }
@@ -443,37 +456,46 @@ private struct FlashcardEditorCard: View {
                 .foregroundColor(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Question")
-                    .font(.subheadline.weight(.semibold))
-                EditorTextBox(text: $card.question, minHeight: 110)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Answer")
-                    .font(.subheadline.weight(.semibold))
-                EditorTextBox(text: $card.answer, minHeight: 140)
-            }
-
-            if !card.evidenceExcerpt.isEmpty {
+            if isExpanded {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Source Evidence")
+                    Text("Question")
                         .font(.subheadline.weight(.semibold))
-
-                    Text(card.evidenceExcerpt)
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
-                        .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(AppTheme.background)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    EditorTextBox(text: $card.question, minHeight: 110)
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Answer")
+                        .font(.subheadline.weight(.semibold))
+                    EditorTextBox(text: $card.answer, minHeight: 140)
+                }
+
+                if !card.evidenceExcerpt.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Source Evidence")
+                            .font(.subheadline.weight(.semibold))
+
+                        Text(card.evidenceExcerpt)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                            .padding(12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppTheme.background)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                }
+            } else {
+                Text(card.question.isEmpty ? "Empty question" : card.question)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(18)
         .background(AppTheme.surface)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
+        .animation(.easeInOut(duration: 0.2), value: isExpanded)
     }
 }
 
@@ -485,11 +507,12 @@ private struct EditorTextBox: View {
         TextEditor(text: $text)
             .frame(minHeight: minHeight)
             .padding(10)
-            .background(AppTheme.background)
+            .scrollContentBackground(.hidden)
+            .background(AppTheme.secondarySurface)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.blue.opacity(0.16), lineWidth: 1.2)
+                    .stroke(AppTheme.subtleBorder, lineWidth: 1.2)
             )
     }
 }
