@@ -28,23 +28,57 @@ struct TimerView: View {
                         }
                     
                     if !timerVM.isActive {
-                        Text("Tap to set time").font(.caption).foregroundColor(.gray)
+                        Label("Tap the time to change duration", systemImage: "hand.tap.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AppTheme.primary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(AppTheme.primary.opacity(0.12))
+                            .clipShape(Capsule())
                     }
                 }
                 
                 Image("owl_mascot")
                     .resizable()
-                    .scaledToFit()
-                    .frame(width: 250)
+                    .scaledToFill()
+                    .frame(width: 220, height: 220)
+                    .background(AppTheme.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: 42, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 42, style: .continuous)
+                            .stroke(AppTheme.subtleBorder, lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.08), radius: 14, y: 7)
                     .onLongPressGesture {
                         timerVM.resetTimer()
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     }
                 
-                Button(action: { timerVM.toggleTimer() }) {
-                    Image(systemName: timerVM.isActive ? "pause.fill" : "play.fill")
-                        .font(.system(size: 40)).foregroundColor(AppTheme.text).padding()
+                HStack(spacing: 18) {
+                    Button(action: {
+                        timerVM.resetTimer()
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    }) {
+                        Label("Reset", systemImage: "arrow.counterclockwise")
+                            .font(.headline)
+                            .foregroundColor(AppTheme.secondaryText)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 14)
+                            .background(AppTheme.secondarySurface)
+                            .clipShape(Capsule())
+                    }
+
+                    Button(action: { timerVM.toggleTimer() }) {
+                        Image(systemName: timerVM.isActive ? "pause.fill" : "play.fill")
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 76, height: 76)
+                            .background(AppTheme.primary)
+                            .clipShape(Circle())
+                            .shadow(color: AppTheme.primary.opacity(0.30), radius: 14, y: 7)
+                    }
                 }
+                .buttonStyle(.plain)
                 
                 Spacer(); Spacer()
             }
