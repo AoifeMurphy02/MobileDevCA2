@@ -47,17 +47,20 @@ struct CA2ISOAppApp: App {
                         case .studyGuide: CreateStudyGuideView()
                         case .practiceTests: CreatePracticeTestView()
                         case .timer: TimerView()
+                        case .libraries: LibrariesView()
                         case .createFlashcardsManually: CreateFlashcardManualView()
                         case .flashcardSetDetail(let set):FlashcardSetDetailView(flashcardSet: set)
                         }
                     }
             }
             .environment(viewModel)
+            .fontDesign(.rounded)
             // THE GLOBAL POP-UP (Triggered by the + button)
             .sheet(isPresented: $viewModel.showCreateSheet) {
                 CreateResourceView()
                     .presentationDetents([.medium])
             }
+            .appErrorAlert($viewModel.activeError)
             //  Wait for sheet to close before sliding
             .onChange(of: viewModel.showCreateSheet) { oldValue, newValue in
                 if newValue == false, let target = viewModel.pendingNavigation {

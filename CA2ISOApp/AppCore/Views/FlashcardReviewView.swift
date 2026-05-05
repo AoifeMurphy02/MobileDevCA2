@@ -14,8 +14,7 @@ struct FlashcardReviewView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
 
-    @State private var errorMessage = ""
-    @State private var showErrorAlert = false
+    @State private var activeError: AppError?
     @State private var shouldOpenSavedDeck = false
     @State private var savedFlashcardSet: FlashcardSet?
     @State private var draftWasFinalized = false
@@ -50,11 +49,7 @@ struct FlashcardReviewView: View {
                 .foregroundColor(.red)
             }
         }
-        .alert("Could not save deck", isPresented: $showErrorAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(errorMessage)
-        }
+        .appErrorAlert($activeError)
         .onAppear {
             draftWasFinalized = false
             viewModel.syncCurrentUserState(modelContext: modelContext)
@@ -302,8 +297,7 @@ struct FlashcardReviewView: View {
     private func saveDeck(openForStudy: Bool) {
         // 1. Validation: Ensure we actually have cards to save
         guard !viewModel.flashcardDraftCards.isEmpty else {
-            self.errorMessage = "Please add at least one card to the deck."
-            self.showErrorAlert = true
+            activeError = .validation("Please add at least one card to the deck.")
             return
         }
 
@@ -319,8 +313,7 @@ struct FlashcardReviewView: View {
         let resolvedOwnerEmail = viewModel.resolvedAuthenticatedEmail(modelContext: modelContext)
 
         guard !resolvedOwnerEmail.isEmpty else {
-            self.errorMessage = "Please sign in again before saving this deck."
-            self.showErrorAlert = true
+            activeError = .validation("Please sign in again before saving this deck.")
             return
         }
 
@@ -374,8 +367,7 @@ struct FlashcardReviewView: View {
         } catch {
             // 5. Catch the specific error you were seeing
             print("DATABASE ERROR: \(error)")
-            self.errorMessage = "Could not process deck: \(error.localizedDescription)"
-            self.showErrorAlert = true
+            activeError = .storage("Could not save this deck. Please review the cards and try again.")
         }
     }
 

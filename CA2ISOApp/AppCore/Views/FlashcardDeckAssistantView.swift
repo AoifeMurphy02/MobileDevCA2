@@ -41,8 +41,7 @@ struct FlashcardDeckAssistantView: View {
     @State private var messages: [FlashcardAssistantMessage] = []
     @State private var isLoading = false
     @State private var showSettings = false
-    @State private var errorMessage = ""
-    @State private var showErrorAlert = false
+    @State private var activeError: AppError?
 
     var body: some View {
         NavigationStack {
@@ -73,11 +72,7 @@ struct FlashcardDeckAssistantView: View {
             .sheet(isPresented: $showSettings) {
                 FlashcardAISettingsView()
             }
-            .alert("Assistant Error", isPresented: $showErrorAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(errorMessage)
-            }
+            .appErrorAlert($activeError)
             .onAppear {
                 seedGreetingIfNeeded()
             }
@@ -253,8 +248,7 @@ struct FlashcardDeckAssistantView: View {
                 )
             )
         } catch {
-            errorMessage = error.localizedDescription
-            showErrorAlert = true
+            activeError = .ai(error.localizedDescription)
         }
 
         isLoading = false

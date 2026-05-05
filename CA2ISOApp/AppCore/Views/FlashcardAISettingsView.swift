@@ -13,8 +13,7 @@ struct FlashcardAISettingsView: View {
     @State private var selectedMode = FlashcardAISettingsStore.currentMode()
     @State private var selectedModel = FlashcardAISettingsStore.currentModelOption()
     @State private var apiKey = FlashcardAISettingsStore.loadAPIKey()
-    @State private var errorMessage = ""
-    @State private var showErrorAlert = false
+    @State private var activeError: AppError?
 
     var body: some View {
         NavigationStack {
@@ -89,11 +88,7 @@ struct FlashcardAISettingsView: View {
                     .fontWeight(.semibold)
                 }
             }
-            .alert("Could not save settings", isPresented: $showErrorAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(errorMessage)
-            }
+            .appErrorAlert($activeError)
         }
     }
 
@@ -141,8 +136,7 @@ struct FlashcardAISettingsView: View {
             )
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
-            showErrorAlert = true
+            activeError = .storage("Could not save the AI settings. Please try again.")
         }
     }
 }

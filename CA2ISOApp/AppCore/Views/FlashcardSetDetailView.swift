@@ -48,6 +48,7 @@ struct FlashcardSetDetailView: View {
     @State private var masteredCardIDs: Set<PersistentIdentifier> = []
     @State private var reviewCardIDs: Set<PersistentIdentifier> = []
     @State private var showAssistantSheet = false
+    @State private var activeError: AppError?
 
     private var orderedCards: [Flashcard] {
         flashcardSet.cards.sorted(by: { $0.orderIndex < $1.orderIndex })
@@ -94,8 +95,7 @@ struct FlashcardSetDetailView: View {
                         startRound(.reviewOnly)
                     },
                     finishAction: {
-                        dismiss()
-                        viewModel.goHome()
+                        finishAndReturnHome()
                     }
                     
                 )
@@ -223,6 +223,7 @@ struct FlashcardSetDetailView: View {
         .sheet(isPresented: $showAssistantSheet) {
             FlashcardDeckAssistantView(flashcardSet: flashcardSet)
         }
+        .appErrorAlert($activeError)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -236,8 +237,12 @@ struct FlashcardSetDetailView: View {
                 Button(role: .destructive) {
                     FlashcardStudyProgressStore.removeProgress(for: flashcardSet)
                     modelContext.delete(flashcardSet)
-                    try? modelContext.save()
-                    dismiss()
+                    do {
+                        try modelContext.save()
+                        dismiss()
+                    } catch {
+                        activeError = .storage("Could not delete this deck. Please try again.")
+                    }
                 } label: {
                     Image(systemName: "trash")
                 }
@@ -478,6 +483,12 @@ struct FlashcardSetDetailView: View {
             deckTitle: flashcardSet.title,
             reviewCount: reviewCardIDs.count
         )
+    }
+
+    private func finishAndReturnHome() {
+        DispatchQueue.main.async {
+            viewModel.goHome()
+        }
     }
 
     private func scheduleResumeReminderIfNeeded() {

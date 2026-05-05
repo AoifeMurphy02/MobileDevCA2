@@ -12,14 +12,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		237A31A02F731E730045F41C /* CA2ISOApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CA2ISOApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		237A31A02F731E730045F41C /* SmartDeck.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SmartDeck.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		23DC8F072FA0A83E0020CC3F /* CA2ISOApp-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "CA2ISOApp-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		237A31BD2F731F4D0045F41C /* CA2ISOApp */ = {
+		237A31BD2F731F4D0045F41C /* CA2IOSApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CA2ISOApp;
+			path = CA2IOSApp;
 			sourceTree = "<group>";
 		};
 		237A31C32F731FEF0045F41C /* Models */ = {
@@ -64,7 +64,7 @@
 		237A31A12F731E730045F41C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				237A31A02F731E730045F41C /* CA2ISOApp.app */,
+				237A31A02F731E730045F41C /* SmartDeck.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -75,7 +75,7 @@
 				237A31D52F7320740045F41C /* Controllers */,
 				237A31D42F7320530045F41C /* Views */,
 				237A31C32F731FEF0045F41C /* Models */,
-				237A31BD2F731F4D0045F41C /* CA2ISOApp */,
+				237A31BD2F731F4D0045F41C /* CA2IOSApp */,
 			);
 			path = AppCore;
 			sourceTree = "<group>";
@@ -96,7 +96,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				237A31BD2F731F4D0045F41C /* CA2ISOApp */,
+				237A31BD2F731F4D0045F41C /* CA2IOSApp */,
 				237A31C32F731FEF0045F41C /* Models */,
 				237A31D42F7320530045F41C /* Views */,
 				237A31D52F7320740045F41C /* Controllers */,
@@ -107,7 +107,7 @@
 				23DC8F052FA09DC70020CC3F /* GoogleSignInSwift */,
 			);
 			productName = CA2ISOApp;
-			productReference = 237A31A02F731E730045F41C /* CA2ISOApp.app */;
+			productReference = 237A31A02F731E730045F41C /* SmartDeck.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -299,7 +299,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "CA2ISOApp-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = SmartDeck;
+				INFOPLIST_KEY_CFBundleName = SmartDeck;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to scan study documents and turn them into flashcards.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Use your location to find nearby libraries and show study routes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -311,7 +313,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rathnammeghana.CA2ISOApp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = SmartDeck;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -334,7 +336,9 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "CA2ISOApp-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = SmartDeck;
+				INFOPLIST_KEY_CFBundleName = SmartDeck;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Use the camera to scan study documents and turn them into flashcards.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Use your location to find nearby libraries and show study routes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -346,7 +350,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.rathnammeghana.CA2ISOApp;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = SmartDeck;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;

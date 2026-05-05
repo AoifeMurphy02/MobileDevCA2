@@ -20,8 +20,7 @@ struct CreateFlashcardManualView: View {
     @State private var selectedstudyArea = ""
     @State private var topic = ""
     @State private var flashcardTitle = ""
-    @State private var errorMessage = ""
-    @State private var showErrorAlert = false
+    @State private var activeError: AppError?
     
     var body: some View {
        @Bindable var viewModel = viewModel
@@ -105,11 +104,7 @@ struct CreateFlashcardManualView: View {
                 selectedstudyArea = viewModel.defaultstudyAreaForCreation
             }
         }
-        .alert("Error", isPresented: $showErrorAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(errorMessage)
-        }
+        .appErrorAlert($activeError)
     }
     
     
@@ -217,8 +212,7 @@ struct CreateFlashcardManualView: View {
             viewModel.navPath = NavigationPath()
             viewModel.navPath.append(NavTarget.home)
         } catch {
-            errorMessage = "Could not save to database: \(error.localizedDescription)"
-            showErrorAlert = true
+            activeError = .storage("Could not save this manual deck. Please try again.")
         }
     }
 }
