@@ -22,6 +22,7 @@ enum NavTarget: Hashable {
     case studyGuide
     case practiceTests
     case timer
+    case libraries
     case createFlashcardsManually
     case flashcardSetDetail(FlashcardSet)
 }
@@ -42,6 +43,7 @@ class AppViewModel {
     
     var isLoggedIn = false // New state to trigger navigation to Home
     var loginError = ""    // For error handling
+    var activeError: AppError?
     
     var chosenstudyAreas: [String] = []
     var activestudyArea = ""
@@ -88,6 +90,15 @@ class AppViewModel {
 
         return studyAreaOptions.first ?? ""
     }
+
+    func showError(_ error: AppError) {
+        loginError = error.message
+        activeError = error
+    }
+
+    private func showInlineError(_ error: AppError) {
+        loginError = error.message
+    }
     
     //  save the user
     func signUpUser(modelContext: ModelContext) {
@@ -95,17 +106,17 @@ class AppViewModel {
         let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !cleanEmail.isEmpty else {
-            loginError = "Please enter your email."
+            showInlineError(.validation("Please enter your email."))
             return
         }
 
         guard !trimmedPassword.isEmpty else {
-            loginError = "Please enter your password."
+            showInlineError(.validation("Please enter your password."))
             return
         }
 
         guard hasAgreedToTerms else {
-            loginError = "Please accept the Terms & Conditions before signing up."
+            showInlineError(.validation("Please accept the Terms & Conditions before signing up."))
             return
         }
 
@@ -113,7 +124,7 @@ class AppViewModel {
 
         let existingUsers = fetchUsers(in: modelContext)
         if existingUsers.contains(where: { $0.email.lowercased() == cleanEmail }) {
-            loginError = "An account with this email already exists."
+            showInlineError(.validation("An account with this email already exists."))
             return
         }
 
@@ -131,7 +142,7 @@ class AppViewModel {
             isSignedUp = false
             navigateAfterAuthentication(for: newUser)
         } catch {
-            loginError = "Could not create your account right now."
+            showInlineError(.storage("Could not create your account right now. Please try again."))
             print("CRITICAL ERROR: Could not save to disk: \(error.localizedDescription)")
         }
     }
@@ -147,12 +158,12 @@ class AppViewModel {
         print("Searching for cleaned email: [\(cleanEmail)]")
 
         guard !cleanEmail.isEmpty else {
-            self.loginError = "Please enter your email."
+            showInlineError(.validation("Please enter your email."))
             return
         }
 
         guard !trimmedPassword.isEmpty else {
-            self.loginError = "Please enter your password."
+            showInlineError(.validation("Please enter your password."))
             return
         }
         
@@ -170,16 +181,17 @@ class AppViewModel {
                 navigateAfterAuthentication(for: foundUser)
             }
             else {
-                self.loginError = "Wrong password."
+                showInlineError(.validation("Wrong password."))
             }
         } else {
-            self.loginError = "User not found."
+            showInlineError(.validation("User not found. Please check the email or create an account."))
         }
     }
     
     //Save the studyAreas to the Database
     func persiststudyAreasToDatabase(modelContext: ModelContext) {
         guard let targetEmail = currentSessionEmail() ?? persistedSessionEmail() else {
+            activeError = .storage("Please sign in again before saving your study areas.")
             print("DEBUG: No user email found in session. Cannot save.")
             return
         }
@@ -197,6 +209,7 @@ class AppViewModel {
             LocalAccountStore.upsert(from: userInDB)
             print("SUCCESS: Saved \(self.studyAreaOptions.count) studyAreas for user: \(userInDB.email)")
         } catch {
+            activeError = .storage("Could not save your study areas. Please try again.")
             print("ERROR: Could not save to database: \(error.localizedDescription)")
         }
     }
@@ -309,6 +322,7 @@ class AppViewModel {
         let window = windowScene?.windows.first { $0.isKeyWindow }
         
         guard let rootVC = window?.rootViewController else {
+            self.showError(.unknown("Could not open Google sign-in from this screen. Please try again."))
             print("DEBUG: Could not find root view controller")
             return
         }
@@ -317,11 +331,14 @@ class AppViewModel {
         GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { result, error in
             if let error = error {
                 print("Google Login Error: \(error.localizedDescription)")
-                self.loginError = "Google sign-in failed."
+                self.showError(.network("Google sign-in failed. Please check your connection and try again."))
                 return
             }
             
-            guard let user = result?.user else { return }
+            guard let user = result?.user else {
+                self.showError(.unknown("Google sign-in did not return an account. Please try again."))
+                return
+            }
             
             let email = user.profile?.email.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let existingUsers = self.fetchUsers(in: modelContext)
@@ -345,7 +362,7 @@ class AppViewModel {
                     self.navigateAfterAuthentication(for: matchedUser)
                 }
             } catch {
-                self.loginError = "Could not finish Google sign-in."
+                self.showError(.storage("Could not finish Google sign-in. Please try again."))
             }
         }
     }
@@ -371,7 +388,11 @@ class AppViewModel {
         user.lastActivityDate = now
         self.streakCount = user.streakCount
 
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            activeError = .storage("Could not save your streak progress. Your study session still completed.")
+        }
         LocalAccountStore.upsert(from: user)
         print("DEBUG: Streak updated to \(self.streakCount) for \(user.email)")
     }
@@ -422,6 +443,7 @@ class AppViewModel {
         applyChosenstudyAreas(user.savedstudyAreas)
         streakCount = user.streakCount
         loginError = ""
+        activeError = nil
         persistSession(for: user)
     }
 
@@ -477,7 +499,12 @@ class AppViewModel {
     }
 
     private func fetchUsers(in modelContext: ModelContext) -> [User] {
-        (try? modelContext.fetch(FetchDescriptor<User>())) ?? []
+        do {
+            return try modelContext.fetch(FetchDescriptor<User>())
+        } catch {
+            activeError = .storage("Could not load account data from this device.")
+            return []
+        }
     }
 
     private func resolvedUser(forEmail email: String, in modelContext: ModelContext, cachedUsers: [User]? = nil) -> User? {
@@ -501,7 +528,11 @@ class AppViewModel {
         restoredUser.lastActivityDate = storedAccount.lastActivityDate
 
         modelContext.insert(restoredUser)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            activeError = .storage("Could not restore this account on the device. Please try logging in again.")
+        }
         return restoredUser
     }
 
@@ -578,6 +609,7 @@ class AppViewModel {
         activestudyArea = ""
         streakCount = 0
         loginError = ""
+        activeError = nil
         password = ""
         isLoggedIn = false
         isSignedUp = false
