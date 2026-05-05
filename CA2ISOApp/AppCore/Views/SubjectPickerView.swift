@@ -36,11 +36,11 @@ struct studyAreaPickerView: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Choose Your studyAreas")
+                        Text("Choose Your Study Areas")
                             .font(.system(size: 30, weight: .bold, design: .rounded))
                                 .foregroundColor(AppTheme.primary)
 
-                        Text("studyAreas act like study spaces. They organize your decks, power AI suggestions, and make the home screen easier to understand.")
+                        Text("Study areas organize your decks, improve AI suggestions, and keep the dashboard easier to use.")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
@@ -53,13 +53,13 @@ struct studyAreaPickerView: View {
                     .padding(.bottom, 24)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Add a custom studyArea")
+                        Text("Add a custom study area")
                             .font(.headline)
                             .foregroundColor(AppTheme.text)
                             .padding(.horizontal, 26)
 
                         HStack(spacing: 12) {
-                            TextField("Type a studyArea name", text: $newstudyAreaName)
+                            TextField("Type a study area name", text: $newstudyAreaName)
                                 .padding(14)
                                 .foregroundColor(AppTheme.text)
                                 .background(
@@ -104,9 +104,23 @@ struct studyAreaPickerView: View {
                         .padding(.bottom, 24)
                     }
 
-                    VStack(spacing: 14) {
+                    HStack(spacing: 12) {
+                        if !viewModel.studyAreaOptions.isEmpty {
+                            Button("Keep Existing") {
+                                viewModel.goHome()
+                            }
+                            .font(.headline)
+                            .foregroundColor(AppTheme.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppTheme.primary.opacity(0.35), lineWidth: 1.4)
+                            )
+                        }
+
                         Button(action: savestudyAreasAndContinue) {
-                            Text(selectedstudyAreas.isEmpty ? "Choose at Least One studyArea" : continueButtonTitle)
+                            Text(selectedstudyAreas.isEmpty ? "Choose One" : continueButtonTitle)
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -115,14 +129,6 @@ struct studyAreaPickerView: View {
                                 .clipShape(Capsule())
                         }
                         .disabled(selectedstudyAreas.isEmpty)
-
-                        if !viewModel.studyAreaOptions.isEmpty {
-                            Button("Keep Existing studyAreas") {
-                                viewModel.goHome()
-                            }
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AppTheme.primary)
-                        }
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 10)
@@ -136,14 +142,14 @@ struct studyAreaPickerView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .disableSwipeBack()
+        .enableSwipeBack()
         .onAppear {
             syncSelectedstudyAreas()
         }
     }
 
     private var continueButtonTitle: String {
-        viewModel.studyAreaOptions.isEmpty ? "Continue to Home" : "Save studyAreas"
+        viewModel.studyAreaOptions.isEmpty ? "Continue" : "Save Changes"
     }
 
     private func syncSelectedstudyAreas() {
