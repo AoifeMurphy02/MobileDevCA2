@@ -262,7 +262,12 @@ struct HomeView: View {
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         descriptor.fetchLimit = 80
-        dashboardFlashcardSets = (try? modelContext.fetch(descriptor)) ?? flashcardSets
+        do {
+            dashboardFlashcardSets = try modelContext.fetch(descriptor)
+        } catch {
+            dashboardFlashcardSets = flashcardSets
+            viewModel.showError(.storage("Could not refresh your saved decks. Showing the latest loaded decks instead."))
+        }
         print("DEBUG: Home fetched \(dashboardFlashcardSets.count) saved decks from SwiftData.")
     }
 
