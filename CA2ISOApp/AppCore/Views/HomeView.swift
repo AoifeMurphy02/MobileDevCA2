@@ -1,88 +1,483 @@
-//  Home.swift
-//  CA2ISOApp
-//  Created by Aoife on 24/03/2026
-
+import SwiftData
 import SwiftUI
 
 struct HomeView: View {
     @Environment(AppViewModel.self) private var viewModel
-    let cardColors: [Color] = [.orange, .red, .purple, .pink, .green, .blue]
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+    
+    @Query var allUsers: [User]
+    @Query(sort: \FlashcardSet.createdAt, order: .reverse) private var flashcardSets: [FlashcardSet]
+    
+    @State private var dashboardFlashcardSets: [FlashcardSet] = []
+    @State private var progressSnapshots: [String: FlashcardStudyProgressSnapshot] = [:]
+
+    // Logic to filter the deck library based on the selected study space
+    private var visibleSets: [FlashcardSet] {
+        FlashcardSetVisibility.visibleSets(
+            dashboardSets,
+            currentUserEmail: viewModel.activeSessionEmailForUI,
+            totalUserCount: allUsers.count,
+            activeStudyArea: viewModel.activestudyArea
+        )
+    }
+
+    private var dashboardSets: [FlashcardSet] {
+        dashboardFlashcardSets.isEmpty ? flashcardSets : dashboardFlashcardSets
+    }
 
     var body: some View {
+        // We do NOT use @Bindable here. We connect the sheet manually.
+        // This is the ONLY way to bypass the 'Binding<Area>' error
+        // without renaming everything in your app.
+        let showSheet = Binding(
+            get: { viewModel.showCreateSheet },
+            set: { viewModel.showCreateSheet = $0 }
+        )
+        
         ZStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 0) {
-                // --- HEADER ---
-                HStack {
-                    Circle().fill(.gray.opacity(0.3)).frame(width: 50, height: 50)
-                        .overlay(Image(systemName: "person.fill").foregroundColor(.white))
-                    Text("Welcome Back!").font(.title3).fontWeight(.bold).foregroundColor(.blue)
-                    Spacer()
-                    HStack(spacing: 5) {
-                        Text("🔥 \(viewModel.streakCount)")
-                        Image(systemName: "heart").foregroundColor(.blue)
-                    }
-                }
-                .padding(.horizontal).padding(.top, 20)
-                
-                // --- SUBJECTS HEADER ---
-                HStack {
-                    Text("Subjects").font(.headline).foregroundColor(.blue)
-                    Spacer()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    headerCard
+                    studyAreaSection
                     
-                    // We use .subjectPicker value for the Global Router
-                    NavigationLink(value: NavTarget.subjectPicker) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .foregroundColor(.blue)
-                    }
+                    // Display decks first as requested
+                    librarySection
+                    
+                    // Display detailed progress tracking
+                    progressSection
                 }
-                .padding(.horizontal).padding(.top, 30)
-                
-                // --- SUBJECT CARDS ---
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 15) {
-                        ForEach(Array(viewModel.chosenSubjects.enumerated()), id: \.offset) { index, subject in
-                            SubjectCard(title: subject, color: cardColors[index % cardColors.count])
-                        }
-                    }
-                    .padding(.horizontal).padding(.top, 15)
-                }
-                Spacer()
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 100)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            
-            // Reusable bottom bar
+
+            // Centralized Navigation Bar
             CustomNavBar(selectedTab: 0)
         }
+        .background(AppTheme.background.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
-        .onAppear {
-            // Clears any pending navigation when we land home
-            viewModel.pendingNavigation = nil
+        .disableSwipeBack()
+        .sheet(isPresented: showSheet) {
+            CreateResourceView().presentationDetents([.medium])
         }
+        .onAppear {
+            viewModel.syncCurrentUserState(modelContext: modelContext)
+            refreshDashboardDecks()
+            refreshProgressSnapshots()
+            StudyNotificationManager.requestAuthorizationIfNeeded()
+            StudyNotificationManager.refreshDailyStudyReminder()
+        }
+        .onChange(of: scenePhase) { _, newValue in
+            if newValue == .active {
+                viewModel.syncCurrentUserState(modelContext: modelContext)
+                refreshDashboardDecks()
+                refreshProgressSnapshots()
+            }
+        }
+        .onChange(of: flashcardSets.count) { _, _ in
+            refreshDashboardDecks()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .flashcardStudyProgressDidChange)) { _ in
+            refreshProgressSnapshots()
+        }
+    }
+    
+    // MARK: - Subviews
+
+    private var headerCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                HStack(alignment: .center, spacing: 12) {
+                    Image("owl_mascot")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 50, height: 50)
+                        .background(Color.white.opacity(0.18))
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(Color.white.opacity(0.22), lineWidth: 1)
+                        )
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Welcome Back")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.82))
+
+                        Text(homeTitle)
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    Label("\(viewModel.streakCount) day streak", systemImage: "flame.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.white)
+
+                    Text("\(visibleSets.count) decks saved")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.78))
+                }
+            }
+
+            Text(headerDescription)
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.88))
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [Color(red: 0.11, green: 0.49, blue: 0.95), Color(red: 0.25, green: 0.53, blue: 0.94)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 26))
+    }
+
+    private var studyAreaSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Study Spaces").font(.headline)
+                Spacer()
+                Button {
+                    viewModel.navPath.append(NavTarget.studyAreaPicker)
+                } label: {
+                    Label("Edit", systemImage: "slider.horizontal.3").font(.subheadline.weight(.semibold))
+                }
+            }
+
+            if viewModel.studyAreaOptions.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("No spaces yet").font(.headline)
+                    Text("Pick Areas to organize your decks.").font(.subheadline).foregroundColor(.secondary)
+                }
+                .padding(18).frame(maxWidth: .infinity, alignment: .leading).background(AppTheme.surface).clipShape(RoundedRectangle(cornerRadius: 20))
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        studyAreaFilterChip(title: "All", isSelected: viewModel.activestudyArea.isEmpty) {
+                            viewModel.selectstudyArea("")
+                        }
+
+                        ForEach(viewModel.studyAreaOptions, id: \.self) { name in
+                            studyAreaFilterChip(title: name, isSelected: viewModel.activestudyArea == name) {
+                                viewModel.selectstudyArea(name)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var librarySection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(viewModel.activestudyArea.isEmpty ? "Recent Decks" : "\(viewModel.activestudyArea) Decks")
+                .font(.headline)
+
+            if visibleSets.isEmpty {
+                DashboardEmptyStateCard(
+                    icon: "rectangle.stack.badge.plus",
+                    title: "No decks yet",
+                    message: "Create AI flashcards or add a manual deck to start building your study library.",
+                    tint: AppTheme.primary
+                )
+            } else {
+                ForEach(visibleSets.prefix(8)) { set in
+                    NavigationLink(value: NavTarget.flashcardSetDetail(set)) {
+                        FlashcardSetCard(flashcardSet: set)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Progress").font(.headline)
+
+            if shouldShowDraftProgressCard {
+                PendingDraftProgressCard(
+                    title: viewModel.flashcardDraftTitle,
+                    studyArea: viewModel.flashcardDraftstudyArea,
+                    cardCount: viewModel.flashcardDraftCards.count
+                ) {
+                    viewModel.navPath.append(NavTarget.flashcardReview)
+                }
+            }
+
+            if !visibleSets.isEmpty {
+                ForEach(visibleSets.prefix(6)) { set in
+                    NavigationLink {
+                        FlashcardSetDetailView(flashcardSet: set, shouldResumeProgress: true)
+                    } label: {
+                        DeckProgressCard(flashcardSet: set, snapshot: progressSnapshot(for: set))
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else if !shouldShowDraftProgressCard {
+                DashboardEmptyStateCard(
+                    icon: "chart.line.uptrend.xyaxis",
+                    title: "No progress yet",
+                    message: "Study a deck and your learned cards, review cards, and progress will appear here.",
+                    tint: Color(red: 0.18, green: 0.63, blue: 0.35)
+                )
+            }
+        }
+    }
+
+    // MARK: - Logic Helpers
+    
+    private var homeTitle: String {
+        if let email = viewModel.activeSessionEmailForUI { return email.components(separatedBy: "@").first ?? email }
+        return "SmartDeck"
+    }
+
+    private var headerDescription: String {
+        viewModel.activestudyArea.isEmpty ? "View your learning stats and jump back into recent decks." : "Focusing on \(viewModel.activestudyArea)."
+    }
+
+    private var shouldShowDraftProgressCard: Bool {
+        guard viewModel.hasFlashcardDraft else { return false }
+
+        return viewModel.activestudyArea.isEmpty ||
+            viewModel.flashcardDraftstudyArea.isEmpty ||
+            viewModel.flashcardDraftstudyArea == viewModel.activestudyArea
+    }
+
+    private func progressSnapshot(for set: FlashcardSet) -> FlashcardStudyProgressSnapshot {
+        let deckID = FlashcardStudyProgressStore.deckID(for: set)
+        return progressSnapshots[deckID] ?? FlashcardStudyProgressStore.snapshot(for: set)
+    }
+
+    private func refreshDashboardDecks() {
+        var descriptor = FetchDescriptor<FlashcardSet>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 80
+        do {
+            dashboardFlashcardSets = try modelContext.fetch(descriptor)
+        } catch {
+            dashboardFlashcardSets = flashcardSets
+            viewModel.showError(.storage("Could not refresh your saved decks. Showing the latest loaded decks instead."))
+        }
+        print("DEBUG: Home fetched \(dashboardFlashcardSets.count) saved decks from SwiftData.")
+    }
+
+    private func refreshProgressSnapshots() {
+        progressSnapshots = FlashcardStudyProgressStore.loadAllSnapshots()
     }
 }
 
-struct SubjectCard: View {
-    var title: String
-    var color: Color
-    
+private struct DashboardEmptyStateCard: View {
+    let icon: String
+    let title: String
+    let message: String
+    let tint: Color
+
     var body: some View {
-        VStack(alignment: .leading) {
-            Text(title)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            Spacer()
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: 40))
-                .foregroundColor(.white.opacity(0.8))
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(tint.opacity(0.12))
+                    .frame(width: 64, height: 64)
+
+                Image(systemName: icon)
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(tint)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(AppTheme.text)
+
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundColor(AppTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
-        .padding()
-        .frame(width: 160, height: 120)
-        .background(color)
-        .cornerRadius(20)
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22)
+                .stroke(AppTheme.subtleBorder, lineWidth: 1)
+        )
     }
 }
+
+private struct studyAreaFilterChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(isSelected ? .white : AppTheme.primary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    isSelected
+                    ? AppTheme.primary
+                    : AppTheme.surface
+                )
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.blue.opacity(isSelected ? 0 : 0.18), lineWidth: 1.2)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct PendingDraftProgressCard: View {
+    let title: String
+    let studyArea: String
+    let cardCount: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.orange.opacity(0.14))
+                        .frame(width: 54, height: 54)
+
+                    Image(systemName: "square.and.pencil")
+                        .font(.title3)
+                        .foregroundColor(Color.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Review, Save, and Study")
+                        .font(.headline)
+                        .foregroundColor(AppTheme.text)
+
+                    Text(draftSubtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer()
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(AppTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var draftSubtitle: String {
+        
+        let resolvedTitle = title.isEmpty ? "Untitled Deck" : title
+        let studyAreaPrefix = studyArea.isEmpty ? "" : "\(studyArea) • "
+        return "\(studyAreaPrefix)\(resolvedTitle) • \(cardCount) cards still need review before you save"
+    }
+}
+
+private struct DeckProgressCard: View {
+    let flashcardSet: FlashcardSet
+    let snapshot: FlashcardStudyProgressSnapshot
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(flashcardSet.title)
+                        .font(.headline)
+                        .foregroundColor(AppTheme.text)
+
+                    Text(deckSubtitle)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+            }
+
+            HStack(spacing: 10) {
+                ProgressPill(
+                    title: "\(snapshot.reviewedCardCount)/\(snapshot.totalCardCount) reviewed",
+                    tint: Color(red: 0.25, green: 0.53, blue: 0.94)
+                )
+
+                ProgressPill(
+                    title: "\(snapshot.learnedCardCount) learnt",
+                    tint: Color(red: 0.45, green: 0.81, blue: 0.49)
+                )
+
+                ProgressPill(
+                    title: "\(snapshot.stillLearningCardCount) still learning",
+                    tint: Color(red: 0.98, green: 0.48, blue: 0.43)
+                )
+            }
+
+            Text(remainingLine)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var deckSubtitle: String {
+       // let details = [flashcardSet.studyArea, flashcardSet.sourceType]
+        let details = [flashcardSet.studyArea, flashcardSet.sourceType]
+            .filter { !$0.isEmpty }
+            .joined(separator: " • ")
+
+        if details.isEmpty {
+            return snapshot.hasProgress ? "Latest study progress" : "Ready to study"
+        }
+
+        return details
+    }
+
+    private var remainingLine: String {
+        if snapshot.hasProgress {
+            return "\(snapshot.remainingCardCount) cards not reviewed in the latest study round."
+        }
+
+        return "No study progress saved yet."
+    }
+}
+
+private struct ProgressPill: View {
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundColor(tint)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(tint.opacity(0.12))
+            .clipShape(Capsule())
+    }
+}
+
 #Preview {
     NavigationStack {
         HomeView()

@@ -11,24 +11,10 @@ import SwiftUI
 import SwiftUI
 
 struct CreatePracticeTestView: View {
-    @Environment(AppViewModel.self) private var viewModel
-    
     var body: some View {
-        @Bindable var viewModel = viewModel
-        
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 15) {
-                    // Profile Image
-                    Circle()
-                        .fill(.gray.opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Image(systemName: "person.fill")
-                                .foregroundColor(.white)
-                        )
-                        .clipShape(Circle())
-                    
                     Text("Create Practice Test")
                         .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
@@ -50,18 +36,13 @@ struct CreatePracticeTestView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(Color.white)
+            .background(AppTheme.surface)
 
             // NAV BAR
             CustomNavBar(selectedTab: 1) // Plus tab is active
         }
         .navigationBarBackButtonHidden(true)
-        // This handles the pop-up if the user clicks +
-        .sheet(isPresented: $viewModel.showCreateSheet) {
-            CreateResourceView()
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
+        .enableSwipeBack()
     }
 }
 
@@ -82,7 +63,7 @@ struct TestActionButton: View {
                 
                 Spacer()
             }
-            .foregroundColor(.black)
+            .foregroundColor(AppTheme.text)
             .padding(.vertical, 18)
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity)
@@ -91,7 +72,7 @@ struct TestActionButton: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.blue.opacity(0.4), lineWidth: 1.5)
             )
-            .background(Color.white)
+            .background(AppTheme.surface)
             .cornerRadius(12)
         }
     }

@@ -11,29 +11,27 @@ import UserNotifications
 
 @main
 struct CA2ISOAppApp: App {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var viewModel = AppViewModel()
 
     //  Handle notifications while app is open
     class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-            completionHandler([.banner, .sound])
+            completionHandler([.banner, .sound, .list])
         }
     }
     
     let notifyDelegate = NotificationDelegate()
 
     init() {
-        // 2. Request Permissions on launch
+        viewModel.configureGoogleSignIn()
         let center = UNUserNotificationCenter.current()
         center.delegate = notifyDelegate
-        center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-            print(granted ? "Notifications Allowed" : "Notifications Denied")
-        }
     }
 
     var body: some Scene {
         WindowGroup {
-            @Bindable var viewModel = viewModel
+           @Bindable var viewModel = viewModel
             
             // THE GLOBAL NAVIGATION ENGINE
             NavigationStack(path: $viewModel.navPath) {
@@ -43,21 +41,26 @@ struct CA2ISOAppApp: App {
                         case .signup: SignupView()
                         case .login: LoginView()
                         case .home: HomeView()
-                        case .subjectPicker: SubjectPickerView()
+                        case .studyAreaPicker: studyAreaPickerView()
                         case .flashcards: CreateFlashCardView()
+                        case .flashcardReview: FlashcardReviewView()
                         case .studyGuide: CreateStudyGuideView()
                         case .practiceTests: CreatePracticeTestView()
                         case .timer: TimerView()
+                        case .libraries: LibrariesView()
                         case .createFlashcardsManually: CreateFlashcardManualView()
+                        case .flashcardSetDetail(let set):FlashcardSetDetailView(flashcardSet: set)
                         }
                     }
             }
             .environment(viewModel)
+            .fontDesign(.rounded)
             // THE GLOBAL POP-UP (Triggered by the + button)
             .sheet(isPresented: $viewModel.showCreateSheet) {
                 CreateResourceView()
                     .presentationDetents([.medium])
             }
+            .appErrorAlert($viewModel.activeError)
             //  Wait for sheet to close before sliding
             .onChange(of: viewModel.showCreateSheet) { oldValue, newValue in
                 if newValue == false, let target = viewModel.pendingNavigation {
@@ -69,7 +72,12 @@ struct CA2ISOAppApp: App {
                 }
             }
             .environment(viewModel)
+            .onChange(of: scenePhase) { _, newValue in
+                if newValue == .active {
+                    StudyNotificationManager.refreshDailyStudyReminder()
+                }
+            }
         }
-        .modelContainer(for: [User.self])
+        .modelContainer(for: [User.self, FlashcardSet.self, Flashcard.self])
     }
 }

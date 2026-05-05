@@ -8,10 +8,11 @@ struct SignupView: View {
     @Environment(\.modelContext) private var modelContext
     
     var body: some View {
-        @Bindable var viewModel = viewModel 
+       @Bindable var viewModel = viewModel
+        
         ZStack {
             // Background Blue
-            Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
+            AppTheme.primary.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Owl image
@@ -29,40 +30,42 @@ struct SignupView: View {
                 VStack(spacing: 20) {
                     Text("Getting Started!")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                        .foregroundColor(AppTheme.primary)
                         .padding(.top, 30)
-                    
+
                     // Email Field
                     HStack {
                         Image(systemName: "envelope")
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.primary)
                         TextField("Email", text: $viewModel.email)
                             .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                            .keyboardType(.emailAddress)
+                            .foregroundColor(AppTheme.text)
                     }
                     .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+                    .background(RoundedRectangle(cornerRadius: 10).stroke(AppTheme.subtleBorder))
                     .padding(.horizontal, 30)
                     
                     // Password Field
-                    HStack {
-                        Image(systemName: "lock")
-                            .foregroundColor(.gray)
-                        SecureField("Password", text: $viewModel.password)
-                        Image(systemName: "eye.slash")
-                            .foregroundColor(.gray)
-                    }
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+                    AuthPasswordField(password: $viewModel.password)
                     .padding(.horizontal, 30)
                     
                     // T and C
                     Toggle(isOn: $viewModel.hasAgreedToTerms) {
                         Text("Agree to Terms & Conditions")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(AppTheme.text)
                     }
                     .toggleStyle(CheckboxStyle())
                     .padding(.horizontal, 30)
+
+                    if !viewModel.loginError.isEmpty {
+                        Text(viewModel.loginError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.horizontal, 30)
+                    }
                     
                     // The sign up Button
                     
@@ -79,45 +82,53 @@ struct SignupView: View {
                         }
                         .foregroundColor(.white)
                         .padding()
-                        .background(Color(red: 0.11, green: 0.49, blue: 0.95))
+                        .background(AppTheme.primary)
                         .clipShape(Capsule())
                     }
                     .padding(.horizontal, 30)
                     
                     Text("Or Continue With")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppTheme.text)
                     
                     // Social Icons
-                    HStack(spacing: 30) {
-                        SocialButton(imageName: "google")
-                        SocialButton(imageName: "apple")
-                    }
                     
-                    // Link to Login
+                    HStack(spacing: 30) {
+                        // GOOGLE BUTTON
+                        ZStack {
+                            Button(action: {
+                                print("DEBUG: Google Sign-In Tapped")
+                                viewModel.handleGoogleSignIn(modelContext: modelContext)
+                            }) {
+                                SocialButton(imageName: "google")
+                            }
+                        }
+                    }
+                    .padding(.top, 10)
+
                     NavigationLink(value: NavTarget.login) {
                         HStack(spacing: 4) {
                             Text("Already have an Account?")
-                                .foregroundColor(.gray)
+                                .foregroundColor(AppTheme.text)
                             Text("SIGN IN")
                                 .fontWeight(.bold)
-                                .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
+                                .foregroundColor(AppTheme.primary)
                         }
                         .font(.caption)
                     }
                     .padding(.bottom, 40)
                 }
                 .frame(maxWidth: .infinity)
-                .background(Color.white)
+                .background(AppTheme.surface)
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
             .ignoresSafeArea(edges: .bottom)
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        // This is what triggers the move to Home
-        .navigationDestination(isPresented: $viewModel.isSignedUp) {
-            SubjectPickerView()
+        .disableSwipeBack()
+        .onAppear {
+            viewModel.loginError = ""
         }
     }
 }
@@ -126,7 +137,7 @@ struct CheckboxStyle: ToggleStyle {
     func makeBody(configuration: Self.Configuration) -> some View {
         return HStack {
             Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(configuration.isOn ? .green : .gray)
+                .foregroundColor(configuration.isOn ? .green : AppTheme.text)
                 .onTapGesture { configuration.isOn.toggle() }
             configuration.label
         }
@@ -138,22 +149,15 @@ struct SocialButton: View {
     
     var body: some View {
         Circle()
-            .fill(Color.white)
+            .fill(AppTheme.secondarySurface)
             .frame(width: 45, height: 45)
-            .shadow(color: .black.opacity(0.1), radius: 5)
+            .overlay(Circle().stroke(AppTheme.subtleBorder, lineWidth: 1))
+            .shadow(color: .black.opacity(0.16), radius: 5)
             .overlay(
-                Group {
-                    if imageName == "apple" {
-                        Image(systemName: "applelogo")
-                            .font(.title3)
-                            .foregroundColor(.black)
-                    } else {
-                        Image(imageName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 25, height: 25)
-                    }
-                }
+                Image(imageName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 25, height: 25)
             )
     }
 }

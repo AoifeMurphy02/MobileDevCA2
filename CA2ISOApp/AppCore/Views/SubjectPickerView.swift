@@ -1,185 +1,230 @@
-//
-//  SubjectPickerView.swift
-//  CA2ISOApp
-//
-//  Created by Aoife on 27/03/2026.
-//
-
 import Foundation
-import SwiftUI
 import SwiftData
+import SwiftUI
 
-struct SubjectPickerView: View {
-    // State to track multiple selections
+struct studyAreaPickerView: View {
     @Environment(AppViewModel.self) private var viewModel
-        
-    @State private var selectedSubjects: Set<String> = []
-   
-    
-    @State private var navigateToHome = false
     @Environment(\.modelContext) private var modelContext
-    @Query var allUsers: [User]
 
-    
-    @State private var subjects = [
+    @State private var selectedstudyAreas: Set<String> = []
+    @State private var studyAreas = [
         "English", "French", "German", "Spanish", "Mathematics",
         "Physics", "Biology", "Chemistry", "Computer Science",
-        "Geography", "History", "Music", "Art"
+        "Geography", "History", "Business", "Music", "Art"
     ]
-    
-    @State private var newSubjectName: String = ""
+    @State private var newstudyAreaName = ""
 
+    private let columns = [
+        GridItem(.adaptive(minimum: 140), spacing: 12)
+    ]
 
     var body: some View {
         ZStack {
-            // Background Blue
-            Color(red: 0.11, green: 0.49, blue: 0.95).ignoresSafeArea()
-            
+            LinearGradient(
+                colors: [
+                    Color(red: 0.08, green: 0.43, blue: 0.89),
+                    Color(red: 0.13, green: 0.53, blue: 0.95)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
             VStack(spacing: 0) {
-                // Top Blue Area (Status bar space)
-                Spacer().frame(height: 60)
-                
-                // White Card
-                VStack(spacing: 0) {
-                    Text("Pick Your Subjects")
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
-                        .padding(.top, 40)
-                        .padding(.bottom, 20)
-                    
-            
-                        HStack(spacing: 15) {
-                                            TextField("Type new subject...", text: $newSubjectName)
-                                                .padding()
-                                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.gray.opacity(0.1)))
-                                                .textInputAutocapitalization(.words) // Automatically capitals first letter
-                                            
-                                            Button(action: addNewSubject) {
-                                                Image(systemName: "plus.circle.fill")
-                                                    .font(.system(size: 40))
-                                                    .foregroundColor(newSubjectName.isEmpty ? .gray : .blue)
-                                                
-                                                
-                                            }
-                                            .disabled(newSubjectName.isEmpty) // Disable button if empty
-                                        }
-                                        .padding(.horizontal, 30)
-                                        .padding(.top, 20)
-                                        .padding(.bottom, 10)
-                                        
-                    
+                Spacer()
+                    .frame(height: 54)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Choose Your Study Areas")
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                                .foregroundColor(AppTheme.primary)
+
+                        Text("Study areas organize your decks, improve AI suggestions, and keep the dashboard easier to use.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+
+                        Text("You can always edit these later.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 26)
+                    .padding(.top, 34)
+                    .padding(.bottom, 24)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Add a custom study area")
+                            .font(.headline)
+                            .foregroundColor(AppTheme.text)
+                            .padding(.horizontal, 26)
+
+                        HStack(spacing: 12) {
+                            TextField("Type a study area name", text: $newstudyAreaName)
+                                .padding(14)
+                                .foregroundColor(AppTheme.text)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(AppTheme.secondarySurface)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(AppTheme.subtleBorder, lineWidth: 1)
+                                )
+                                .textInputAutocapitalization(.words)
+
+                            Button(action: addNewstudyArea) {
+                                Image(systemName: "plus")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(width: 48, height: 48)
+                                    .background(
+                                        Circle()
+                                            .fill(newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? Color.gray : Color.blue)
+                                    )
+                            }
+                            .disabled(newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                        .padding(.horizontal, 26)
+                    }
+
                     ScrollView {
-                        VStack(spacing: 15) {
-                            ForEach(subjects, id: \.self) { subject in
-                                SubjectRow(
-                                    title: subject,
-                                    isSelected: selectedSubjects.contains(subject)
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(studyAreas, id: \.self) { studyArea in
+                                studyAreaSelectionChip(
+                                    title: studyArea,
+                                    isSelected: selectedstudyAreas.contains(studyArea)
                                 )
                                 .onTapGesture {
-                                    // Toggle selection logic
-                                    if selectedSubjects.contains(subject) {
-                                        selectedSubjects.remove(subject)
-                                    } else {
-                                        selectedSubjects.insert(subject)
-                                    }
+                                    togglestudyArea(studyArea)
                                 }
                             }
                         }
-                        .padding(.horizontal, 30)
+                        .padding(.horizontal, 26)
+                        .padding(.top, 22)
+                        .padding(.bottom, 24)
                     }
-                    
-                    // Sticky Bottom Button Area
-                
-                    VStack {
-                        Button(action: {
-                           
-                            viewModel.chosenSubjects = Array(selectedSubjects)
-                            viewModel.persistSubjectsToDatabase(modelContext: modelContext, users: allUsers)
-                            
-                            navigateToHome = true
-                        }) {
-                            Text(selectedSubjects.isEmpty ? "Select Subjects" : "Add Subjects")
+
+                    HStack(spacing: 12) {
+                        if !viewModel.studyAreaOptions.isEmpty {
+                            Button("Keep Existing") {
+                                viewModel.goHome()
+                            }
+                            .font(.headline)
+                            .foregroundColor(AppTheme.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppTheme.primary.opacity(0.35), lineWidth: 1.4)
+                            )
+                        }
+
+                        Button(action: savestudyAreasAndContinue) {
+                            Text(selectedstudyAreas.isEmpty ? "Choose One" : continueButtonTitle)
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
-                                .background(selectedSubjects.isEmpty ? Color.gray : Color(red: 0.11, green: 0.49, blue: 0.95))
+                                .background(selectedstudyAreas.isEmpty ? Color.gray : AppTheme.primary)
                                 .clipShape(Capsule())
                         }
-                        .disabled(selectedSubjects.isEmpty)
-                        .padding(.horizontal, 40)
-                        .padding(.top, 20)
-                        .padding(.bottom, 40)
+                        .disabled(selectedstudyAreas.isEmpty)
                     }
-                    .background(Color.white)
+                    .padding(.horizontal, 30)
+                    .padding(.top, 10)
+                    .padding(.bottom, 34)
                 }
-                
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.white)
+                .background(AppTheme.surface)
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 40, topTrailingRadius: 40))
             }
             .ignoresSafeArea(edges: .bottom)
-        }.navigationBarBackButtonHidden(true)
-            .toolbar(.hidden, for: .navigationBar)
-            
-            // Load existing subjects when the screen opens
-            .onAppear {
-                // We take the subjects already in the ViewModel
-                // and put them into the local 'selectedSubjects' Set
-                for subject in viewModel.chosenSubjects {
-                    selectedSubjects.insert(subject)
-                }
-            }
-            
-            .navigationDestination(isPresented: $navigateToHome) {
-                HomeView()
-            }
-        
-       
-    }
-
-func addNewSubject() {
-       let trimmedName = newSubjectName.trimmingCharacters(in: .whitespaces)
-       
-       // Validation: Don't add if empty or if it already exists
-       if !trimmedName.isEmpty && !subjects.contains(trimmedName) {
-           withAnimation(.spring()) {
-               subjects.insert(trimmedName, at: 0) // Adds to the top of the list
-               selectedSubjects.insert(trimmedName) // Automatically select it
-               newSubjectName = "" // Clear the text field
-           }
-       }
-   }
-}
-
-struct SubjectRow: View {
-    var title: String
-    var isSelected: Bool
-    
-    var body: some View {
-        HStack {
-            Text(title)
-                .fontWeight(.medium)
-            
-            Spacer()
-            
         }
-        .padding()
-        .background(RoundedRectangle(cornerRadius: 15).fill(Color.gray.opacity(0.1)))
-        
-        .overlay(
-            RoundedRectangle(cornerRadius: 15)
-                .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
-        )
-        // Animation makes the border fade in smoothly
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .enableSwipeBack()
+        .onAppear {
+            syncSelectedstudyAreas()
+        }
+    }
+
+    private var continueButtonTitle: String {
+        viewModel.studyAreaOptions.isEmpty ? "Continue" : "Save Changes"
+    }
+
+    private func syncSelectedstudyAreas() {
+        for studyArea in viewModel.studyAreaOptions {
+            if !studyAreas.contains(studyArea) {
+                studyAreas.insert(studyArea, at: 0)
+            }
+            selectedstudyAreas.insert(studyArea)
+        }
+    }
+
+    private func togglestudyArea(_ studyArea: String) {
+        if selectedstudyAreas.contains(studyArea) {
+            selectedstudyAreas.remove(studyArea)
+        } else {
+            selectedstudyAreas.insert(studyArea)
+        }
+    }
+
+    private func addNewstudyArea() {
+        let trimmedName = newstudyAreaName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedName.isEmpty, !studyAreas.contains(trimmedName) else { return }
+
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.84)) {
+            studyAreas.insert(trimmedName, at: 0)
+            selectedstudyAreas.insert(trimmedName)
+            newstudyAreaName = ""
+        }
+    }
+
+    private func savestudyAreasAndContinue() {
+        let orderedSelection = studyAreas.filter { selectedstudyAreas.contains($0) }
+
+        viewModel.applyChosenstudyAreas(orderedSelection)
+        if let firststudyArea = orderedSelection.first {
+            viewModel.selectstudyArea(firststudyArea)
+        }
+        viewModel.persiststudyAreasToDatabase(modelContext: modelContext)
+        viewModel.goHome()
     }
 }
 
+private struct studyAreaSelectionChip: View {
+    let title: String
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(isSelected ? .white : AppTheme.primary)
+
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(isSelected ? .white : AppTheme.text)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isSelected ? AppTheme.primary : AppTheme.secondarySurface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isSelected ? Color.clear : Color.blue.opacity(0.14), lineWidth: 1)
+        )
+    }
+}
 
 #Preview {
     NavigationStack {
-        SubjectPickerView()
+        studyAreaPickerView()
             .environment(AppViewModel())
     }
 }

@@ -7,129 +7,284 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 
 struct CreateFlashcardManualView: View {
     @Environment(AppViewModel.self) private var viewModel
+    @Environment(\.modelContext) private var modelContext
     
-    // 1. Interaction State
-    @State private var selectedSubject = ""
+    // Array of cards for multi-card creation
+    @State private var cards: [FlashcardDraft] = [FlashcardDraft(question: "", answer: "")]
+    
+    // Interaction State
+    @State private var selectedstudyArea = ""
     @State private var topic = ""
     @State private var flashcardTitle = ""
-    @State private var question = ""
-    @State private var answer = ""
-
+    @State private var activeError: AppError?
+    
     var body: some View {
+       @Bindable var viewModel = viewModel
+        
         ZStack(alignment: .bottom) {
+            AppTheme.background.ignoresSafeArea()
+            
             VStack(alignment: .leading, spacing: 0) {
-                // HEADER (Matches your prototype)
-                HStack(spacing: 15) {
-                    Circle()
-                        .fill(.gray.opacity(0.3))
-                        .frame(width: 50, height: 50)
-                        .overlay(Image(systemName: "person.fill").foregroundColor(.white))
-                    
-                    Text("Create Flashcards")
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
-                        .foregroundColor(Color(red: 0.11, green: 0.49, blue: 0.95))
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.top, 20)
-
+                headerSection
+                
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
+                        manualModeSummary
+                        deckDetailsSection
                         
-                       
-                        Group {
-                            ManualInputField(label: "Subject", text: $selectedSubject, isPicker: true, subjects: viewModel.chosenSubjects)
-                            ManualInputField(label: "Topic", text: $topic)
-                            ManualInputField(label: "Title", text: $flashcardTitle)
-                        }
-
-                        // Question and Answer
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Term / Question").fontWeight(.bold)
-                            TextEditorView(text: $question)
-                        }
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Answer").fontWeight(.bold)
-                            TextEditorView(text: $answer)
-                        }
-
-                    
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                print("Flashcard Created!")
-                                viewModel.activeNavigation = nil // Go back to Home after creation
-                            }) {
-                                Text("Create")
-                                    .fontWeight(.bold)
-                                    .foregroundColor(Color.blue)
-                                    .padding(.vertical, 12)
-                                    .padding(.horizontal, 60)
-                                    .background(
-                                        Capsule().stroke(Color.blue.opacity(0.5), lineWidth: 1.5)
-                                    )
+                        // 2. DYNAMIC CARD LIST
+                        Text("Cards (\(cards.count))")
+                            .font(.headline)
+                            .padding(.horizontal, 5)
+                        
+                        ForEach($cards) { $card in
+                            ManualCardEditor(
+                                card: $card,
+                                index: cards.firstIndex(where: { $0.id == card.id }) ?? 0
+                            ) {
+                                // Delete logic
+                                if cards.count > 1 {
+                                    withAnimation {
+                                        cards.removeAll(where: { $0.id == card.id })
+                                    }
+                                }
                             }
-                            Spacer()
                         }
-                        .padding(.top, 20)
-                        .padding(.bottom, 100) // Extra space for Nav Bar
+                        
+                        //  ADD CARD BUTTON (+)
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                cards.append(FlashcardDraft(question: "", answer: ""))
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Add Another Card")
+                            }
+                            .font(.headline)
+                            .foregroundColor(.blue)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(RoundedRectangle(cornerRadius: 15).stroke(Color.blue.opacity(0.3), lineWidth: 1.5))
+                        }
+                        .padding(.bottom, 150) // Space for sticky save button and Nav Bar
                     }
-                    .padding(25)
+                    .padding(20)
                 }
             }
             
-            CustomNavBar(selectedTab: 1)
+            // STICKY SAVE BUTTON AREA
+            VStack(spacing: 0) {
+                Button(action: saveEntireDeck) {
+                    Text("Save Full Deck")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(canSave ? Color(red: 0.11, green: 0.49, blue: 0.95) : Color.gray)
+                        .clipShape(Capsule())
+                }
+                .disabled(!canSave)
+                .padding(.horizontal, 25)
+                .padding(.top, 15)
+                .padding(.bottom, 10)
+                .background(AppTheme.surface.shadow(color: .black.opacity(0.05), radius: 5, y: -5))
+                
+                CustomNavBar(selectedTab: 1)
+            }
         }
         .navigationBarBackButtonHidden(true)
+        .enableSwipeBack()
+        .onAppear {
+            if selectedstudyArea.isEmpty {
+                selectedstudyArea = viewModel.defaultstudyAreaForCreation
+            }
+        }
+        .appErrorAlert($activeError)
     }
-}
-
-
-struct ManualInputField: View {
-    let label: String
-    @Binding var text: String
-    var isPicker: Bool = false
-    var subjects: [String] = []
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(label).fontWeight(.bold)
+    
+    
+    var canSave: Bool {
+        // Form is valid if Title is set and at least one card has both Q and A
+        !flashcardTitle.isEmpty && !cards.filter({ $0.question.isEmpty || $0.answer.isEmpty }).isEmpty == false
+    }
+    
+    private var headerSection: some View {
+        HStack(spacing: 15) {
+            Text("Deck Builder").font(.system(size: 24, weight: .bold, design: .rounded)).foregroundColor(.blue)
+            Spacer()
+        }
+        .padding(.horizontal, 20).padding(.top, 15)
+    }
+    
+    private var manualModeSummary: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Create your card deck manually. You can add more cards, reorder them, or use AI tools to expand your deck.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             
-            if isPicker {
-                Picker(label, selection: $text) {
-                    Text("Select Subject").tag("")
-                    ForEach(subjects, id: \.self) { Text($0).tag($0) }
+            HStack(spacing: 10) {
+                ManualStatPill(title: "Manual Entry", tint: .green)
+                ManualStatPill(title: "Persistent Mode", tint: .blue)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
+    }
+    
+    private var deckDetailsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Deck Details").font(.headline)
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("studyArea").font(.subheadline.weight(.semibold))
+                TextField("e.g. Biology", text: $selectedstudyArea)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                
+                if !viewModel.studyAreaOptions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(viewModel.studyAreaOptions, id: \.self) { studyArea in
+                                Button { selectedstudyArea = studyArea } label: {
+                                    Text(studyArea)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundColor(selectedstudyArea == studyArea ? .white : .blue)
+                                        .padding(.horizontal, 12).padding(.vertical, 8)
+                                        .background(selectedstudyArea == studyArea ? Color.blue : Color.blue.opacity(0.05))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
                 }
-                .pickerStyle(.menu)
-                .tint(.black)
-            } else {
-                TextField("", text: $text)
             }
             
-            Divider().background(Color.blue.opacity(0.5))
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Deck Title").font(.subheadline.weight(.semibold))
+                TextField("e.g. Midterm Prep", text: $flashcardTitle)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+            }
+        }
+        .padding(18)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.04), radius: 12, y: 6)
+    }
+
+    private func saveEntireDeck() {
+        // Create the persistent FlashcardSet (The Model)
+        let newSet = FlashcardSet(
+            title: flashcardTitle,
+            ownerEmail: (viewModel.currentUserEmail ?? "").lowercased(),
+            sourceType: "Manual Entry",
+            studyArea: selectedstudyArea,
+            topic: topic,
+            rawText: "Manual Input"
+        )
+        
+        // Add all cards to the set
+        for (cardIndex, draft) in cards.enumerated() {
+                if !draft.question.isEmpty && !draft.answer.isEmpty {
+                    let realCard = Flashcard(
+                        question: draft.question,
+                        answer: draft.answer,
+                        orderIndex: cardIndex,
+                        parentSet: newSet
+                    )
+                    newSet.cards.append(realCard)
+                }
+            }
+        
+        // Save to SwiftData
+        modelContext.insert(newSet)
+        
+        do {
+            try modelContext.save()
+            print("SUCCESS: Full manual deck saved.")
+            // Return to Home
+            viewModel.navPath = NavigationPath()
+            viewModel.navPath.append(NavTarget.home)
+        } catch {
+            activeError = .storage("Could not save this manual deck. Please try again.")
         }
     }
 }
 
-struct TextEditorView: View {
-    @Binding var text: String
+struct ManualCardEditor: View {
+    @Binding var card: FlashcardDraft
+    let index: Int
+    var deleteAction: () -> Void
+    
     var body: some View {
-        TextEditor(text: $text)
-            .frame(height: 120)
-            .padding(10)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.blue.opacity(0.3), lineWidth: 1.5)
-            )
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("Card \(index + 1)").font(.subheadline.bold()).foregroundColor(.gray)
+                Spacer()
+                Button(action: deleteAction) {
+                    Image(systemName: "trash").foregroundColor(.red.opacity(0.7))
+                }
+            }
+            
+            ManualEditorTextBox(text: $card.question, placeholder: "Question...", minHeight: 80)
+            ManualEditorTextBox(text: $card.answer, placeholder: "Answer...", minHeight: 100)
+        }
+        .padding(18)
+        .background(AppTheme.surface)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: .black.opacity(0.04), radius: 10, y: 5)
+    }
+}
+
+struct ManualEditorTextBox: View {
+    @Binding var text: String
+    var placeholder: String
+    let minHeight: CGFloat
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            if text.isEmpty {
+                Text(placeholder)
+                    .foregroundColor(.gray.opacity(0.5))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 16)
+            }
+            
+            TextEditor(text: $text)
+                .frame(minHeight: minHeight)
+                .padding(10)
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.background)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.blue.opacity(0.16), lineWidth: 1.2)
+                )
+        }
+    }
+}
+
+struct ManualStatPill: View {
+    let title: String
+    let tint: Color
+    var body: some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundColor(tint)
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(tint.opacity(0.12))
+            .clipShape(Capsule())
     }
 }
 
 #Preview {
     let model = AppViewModel()
-    model.chosenSubjects = ["English", "Maths"]
+    model.chosenstudyAreas = ["English", "Maths"]
     return CreateFlashcardManualView().environment(model)
 }

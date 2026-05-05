@@ -1,14 +1,15 @@
 import Foundation
 import Observation
-import UserNotifications
 
 @Observable
 class TimerViewModel {
     
     
     var timeRemaining = 1500 // 25 minutes
+    private var selectedDurationSeconds = 1500
     var isActive = false
     var timer: Timer?
+    var hasFinishedSession = false
     
     func formatTime() -> String {
         let minutes = timeRemaining / 60
@@ -19,7 +20,9 @@ class TimerViewModel {
     func toggleTimer() {
         if isActive {
             timer?.invalidate()
+            StudyNotificationManager.cancelTimerComplete()
         } else {
+            StudyNotificationManager.scheduleTimerComplete(after: TimeInterval(timeRemaining))
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
                 if self.timeRemaining > 0 {
                     self.timeRemaining -= 1
@@ -33,33 +36,33 @@ class TimerViewModel {
     
     func resetTimer() {
         timer?.invalidate()
+        StudyNotificationManager.cancelTimerComplete()
         isActive = false
-        timeRemaining = 1500
+        timeRemaining = selectedDurationSeconds
     }
     
+   // func timerFinished() {
+     //   timer?.invalidate()
+       // isActive = false
+    //}
     func timerFinished() {
-        timer?.invalidate()
-        isActive = false
-        sendNotification()
-    }
-    
+            timer?.invalidate()
+            isActive = false
+            timeRemaining = 0
+            //sendNotification()
+            
+            // TRIGGER THE CHANGE:
+            self.hasFinishedSession = true
+        }
     func setDuration(minutes: Int) {
         // Stop any running timer
         timer?.invalidate()
+        StudyNotificationManager.cancelTimerComplete()
         isActive = false
         
         // Set the new time (Minutes * 60 seconds)
-        self.timeRemaining = minutes * 60
+        selectedDurationSeconds = minutes * 60
+        timeRemaining = selectedDurationSeconds
     }
 
-    func sendNotification() {
-        let content = UNMutableNotificationContent()
-        content.title = "Study Session Complete!"
-        content.body = "Great job focusing. Take a short break!"
-        content.sound = .default
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request)
-    }
 }
